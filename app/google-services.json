@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "284663126274",
+    "firebase_url": "https://drkishan-f0433-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "drkishan-f0433",
+    "storage_bucket": "drkishan-f0433.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284663126274:android:f886fec390870099c5ca1b",
+        "android_client_info": {
+          "package_name": "com.nimeshkadecha.drkishan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAO-CS9wD2UMn-Imujd02dtA44e78x1GrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

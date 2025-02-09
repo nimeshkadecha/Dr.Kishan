@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/etHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Header (Optional)"
+        android:inputType="text" />
+
+    <EditText
+        android:id="@+id/etFooter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter Footer (Optional)"
+        android:inputType="text"
+        android:layout_marginTop="10dp"/>
+
+</LinearLayout>
