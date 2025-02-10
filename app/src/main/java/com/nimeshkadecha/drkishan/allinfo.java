@@ -69,7 +69,6 @@ public class allinfo extends AppCompatActivity {
 		// Log SharedPreferences data for debugging
 		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
-
 		Log.d("SharedPreferences", "Raw JSON Data: " + savedJson);
 
 		recyclerView = findViewById(R.id.ProductListWithInfo);
@@ -80,86 +79,91 @@ public class allinfo extends AppCompatActivity {
 		productQuantities = new ArrayList<>();
 		productUnits = new ArrayList<>();
 
-
 		adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits, amount, unit);
-		recyclerView.setAdapter(adapter); // ✅ Now set adapter after loading data
+		recyclerView.setAdapter(adapter); // ✅ Set adapter after loading data
 
 		loadDataFromSharedPreferences(); // ✅ Load data first
-
 
 		// Set Click Listener for Add Button
 		Button btnAdd = findViewById(R.id.button);
 		btnAdd.setOnClickListener(v -> showAddProductDialog());
 
-		// Copy Button Functionality (No Changes)
+		// Copy Button Functionality
 		Button btnCopy = findViewById(R.id.button2_copy);
 		btnCopy.setOnClickListener(v -> showCopyDialog());
 
-		// Save Button - Checks for changes before uploading
+		// ✅ Save Button - Always Upload Data to Firebase
 		Button btnSave = findViewById(R.id.button_Upload);
-		btnSave.setOnClickListener(v -> {
-			if (dataChanged) {
-				uploadDataToFirebase();
-			} else {
-				Toast.makeText(this, "No changes detected!", Toast.LENGTH_SHORT).show();
-			}
-		});
+		btnSave.setOnClickListener(v -> uploadDataToFirebase()); // ✅ No check, always upload
 	}
 
-	// ✅ Load Data from SharedPreferences
+	// ✅ Load Data from SharedPreferences and Ensure It's Updated with Intent Values
 	private void loadDataFromSharedPreferences() {
 		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 
-		Log.d("SharedPreferences", "Raw JSON Data: " + savedJson);
+		Log.d("SharedPreferences", "Raw JSON Data Before Update: " + savedJson);
 
 		try {
 			JSONObject jsonObject = new JSONObject(savedJson);
-			if (jsonObject.has("users1")) {
-				JSONObject usersObj = jsonObject.getJSONObject("users1");
-				if (usersObj.has(productName) && usersObj.getJSONObject(productName).has(stage)) {
-					storedData = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
+			if (!jsonObject.has(userName)) jsonObject.put(userName, new JSONObject());
+			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
-					if (storedData.has("data")) {
-						JSONObject dataObject = storedData.getJSONObject("data");
-						JSONArray messagesArray = new JSONArray(dataObject.getString("value"));
+			if (!usersObj.has(productName)) usersObj.put(productName, new JSONObject());
+			JSONObject productObj = usersObj.getJSONObject(productName);
 
-						SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-						Calendar calendar = Calendar.getInstance();
-						calendar.setTime(sdf.parse(mainDate));
+			if (!productObj.has(stage)) productObj.put(stage, new JSONObject());
+			JSONObject stageObj = productObj.getJSONObject(stage);
 
-						List<String> newProductDates = new ArrayList<>();
-						List<String> newProductMessages = new ArrayList<>();
-						List<Double> newProductQuantities = new ArrayList<>();
-						List<String> newProductUnits = new ArrayList<>();
+			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
+			storedData = stageObj.getJSONObject(subStage);
 
-						for (int i = 0; i < messagesArray.length(); i++) {
-							JSONObject obj = messagesArray.getJSONObject(i);
-							newProductMessages.add(obj.getString("m"));
-							newProductQuantities.add(obj.getDouble("q"));
-							newProductUnits.add(obj.getString("qt"));
-							newProductDates.add(sdf.format(calendar.getTime()));
-							calendar.add(Calendar.DAY_OF_MONTH, interval);
-						}
+			// ✅ Update storedData with latest Intent values
+			storedData.put("count", amount);
+			storedData.put("countingValue", unit);
+			storedData.put("date", mainDate);
+			storedData.put("interval", interval);
 
-						// ✅ Ensure adapter is not null before updating list
-						if (adapter != null) {
-							runOnUiThread(() -> {
-								if (adapter == null) {
-									adapter = new ProductDataAdapter(this, newProductDates, newProductMessages, newProductQuantities, newProductUnits, amount, unit);
-									recyclerView.setAdapter(adapter);
-								} else {
-									adapter.updateList(newProductDates, newProductMessages, newProductQuantities, newProductUnits);
-									adapter.notifyDataSetChanged();
-								}
-							});
+			// ✅ Save updated JSON back to SharedPreferences
+			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
-						} else {
-							Log.e("AdapterUpdate", "Adapter is null, cannot update list");
-						}
-					}
+			Log.d("SharedPreferences", "Updated JSON Data: " + jsonObject.toString());
+
+			// ✅ Ensure RecyclerView gets updated values
+			if (storedData.has("data")) {
+				JSONObject dataObject = storedData.getJSONObject("data");
+				JSONArray messagesArray = new JSONArray(dataObject.getString("value"));
+
+				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+				Calendar calendar = Calendar.getInstance();
+				calendar.setTime(sdf.parse(mainDate));
+
+				List<String> newProductDates = new ArrayList<>();
+				List<String> newProductMessages = new ArrayList<>();
+				List<Double> newProductQuantities = new ArrayList<>();
+				List<String> newProductUnits = new ArrayList<>();
+
+				for (int i = 0; i < messagesArray.length(); i++) {
+					JSONObject obj = messagesArray.getJSONObject(i);
+					newProductMessages.add(obj.getString("m"));
+					newProductQuantities.add(obj.getDouble("q"));
+					newProductUnits.add(obj.getString("qt"));
+					newProductDates.add(sdf.format(calendar.getTime()));
+					calendar.add(Calendar.DAY_OF_MONTH, interval);
 				}
+
+				// ✅ Update RecyclerView with updated data
+				runOnUiThread(() -> {
+					if (adapter != null) {
+						adapter.updateList(newProductDates, newProductMessages, newProductQuantities, newProductUnits);
+						adapter.notifyDataSetChanged();
+					} else {
+						adapter = new ProductDataAdapter(this, newProductDates, newProductMessages, newProductQuantities, newProductUnits, amount, unit);
+						recyclerView.setAdapter(adapter);
+					}
+				});
 			}
+
 		} catch (JSONException | ParseException e) {
 			Log.e("SharedPreferences", "Error parsing JSON", e);
 		}
@@ -332,6 +336,12 @@ public class allinfo extends AppCompatActivity {
 							subStageObject.put(key, valueJson.get("value")); // ✅ Directly replace in `subStageObject`
 						}
 					}
+				} else {
+					// ✅ If key does not exist, create it
+					if (key.equals("count")) subStageObject.put(key, productMessages.size());
+					else if (key.equals("countingValue")) subStageObject.put(key, unit);
+					else if (key.equals("date")) subStageObject.put(key, mainDate);
+					else if (key.equals("interval")) subStageObject.put(key, interval);
 				}
 			}
 
@@ -445,8 +455,8 @@ public class allinfo extends AppCompatActivity {
 			JSONObject jsonObject = new JSONObject(savedJson);
 
 			// ✅ Navigate to correct structure
-			if (!jsonObject.has("users1")) jsonObject.put("users1", new JSONObject());
-			JSONObject usersObj = jsonObject.getJSONObject("users1");
+			if (!jsonObject.has(userName)) jsonObject.put(userName, new JSONObject());
+			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
 			if (!usersObj.has(userName)) usersObj.put(userName, new JSONObject());
 			JSONObject userObj = usersObj.getJSONObject(userName);
@@ -537,12 +547,16 @@ public class allinfo extends AppCompatActivity {
 		for (int i = 0; i < productDates.size(); i++) {
 			copiedText.append("- *").append(productDates.get(i)).append("*\n");
 
-			// ✅ Split message into multiple lines and add "-" before each line
-			String[] messageLines = productMessages.get(i).split("\n");
-			for (String line : messageLines) {
-				copiedText.append("- ").append(line).append("\n");
-			}
-			copiedText.append("\n");
+			// ✅ Retrieve Message, Quantity, and Unit
+			String message = productMessages.get(i);
+			double quantity = productQuantities.get(i) * amount;
+			String unit = productUnits.get(i);
+
+			// ✅ Format Quantity with Full Unit Name & Proper Formatting
+			String formattedQuantity = formatQuantityWithFullUnit(quantity, unit);
+
+			// ✅ Append Formatted Message
+			copiedText.append("- ").append(message).append(" -- ").append(formattedQuantity).append("\n\n");
 		}
 
 		// ✅ Add Footer if provided
@@ -557,5 +571,60 @@ public class allinfo extends AppCompatActivity {
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
 	}
+
+
+
+	private String formatQuantityWithFullUnit(double quantity, String unit) {
+		double convertedQuantity = quantity;
+		String finalUnit = unit;
+
+		switch (unit.toLowerCase()) {
+			case "g":
+			case "gram":
+				if (quantity >= 1000) {
+					convertedQuantity = quantity / 1000;
+					finalUnit = "KG"; // Convert to KG
+				} else {
+					finalUnit = "grams"; // Keep grams
+				}
+				break;
+
+			case "kg":
+			case "kilogram":
+				finalUnit = "KG"; // Keep KG
+				break;
+
+			case "ml":
+			case "milliliter":
+				if (quantity >= 1000) {
+					convertedQuantity = quantity / 1000;
+					finalUnit = "Letter"; // Convert ML to L (Letter)
+				} else {
+					finalUnit = "ML"; // Keep ML
+				}
+				break;
+
+			case "l":
+			case "litre":
+			case "liter":
+				finalUnit = "Letter"; // Convert to Letter
+				break;
+
+			default:
+				finalUnit = unit; // Default: Keep original unit
+		}
+
+		return formatNumber(convertedQuantity) + " " + finalUnit;
+	}
+
+	// ✅ Formats numbers with commas, ensuring proper decimal places
+	private String formatNumber(double value) {
+		if (value % 1 == 0) {
+			return String.format(Locale.getDefault(), "%,d", (long) value); // Whole number
+		} else {
+			return String.format(Locale.getDefault(), "%,.2f", value); // Two decimal places
+		}
+	}
+
 
 }

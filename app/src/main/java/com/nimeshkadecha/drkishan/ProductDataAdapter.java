@@ -64,7 +64,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 		holder.txtProduct.setText("Date: " + date);
 		holder.txtDetails.setText("Message: " + message);
-		holder.txtQuantity.setText(formattedQuantity); // ✅ Display calculated quantity
+		holder.txtQuantity.setText(formattedQuantity); // ✅ Display correct quantity
 
 		// ✅ Set Click Listener for Editing
 		holder.itemView.setOnClickListener(v -> showEditDialog(position));
@@ -78,28 +78,24 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		}
 
 		Log.d("AdapterUpdate", "Updating adapter with: " + newProductDates.size() + " items");
-		Log.d("AdapterData", "Dates: " + newProductDates.toString());
-		Log.d("AdapterData", "Messages: " + newProductMessages.toString());
-		Log.d("AdapterData", "Quantities: " + newProductQuantities.toString());
-		Log.d("AdapterData", "Units: " + newProductUnits.toString());
 
-		if (!newProductDates.isEmpty()) {
-			Log.d("AdapterUpdate", "Updating adapter with: " + newProductDates.size() + " items");
+		productDates.clear();
+		productMessages.clear();
+		productQuantities.clear();
+		productUnits.clear();
 
-			productDates.addAll(newProductDates);
-			productMessages.addAll(newProductMessages);
-			List<Double> adjustedQuantities = new ArrayList<>();
-			for (Double q : newProductQuantities) {
-				adjustedQuantities.add(q * amount); // ✅ Apply multiplication
-			}
-			productQuantities.addAll(adjustedQuantities);
+		productDates.addAll(newProductDates);
+		productMessages.addAll(newProductMessages);
 
-			productUnits.addAll(newProductUnits);
-
-			notifyDataSetChanged();
-		} else {
-			Log.w("AdapterUpdate", "Received empty lists, not updating adapter.");
+		// ✅ Convert and store adjusted quantities
+		List<Double> adjustedQuantities = new ArrayList<>();
+		for (Double q : newProductQuantities) {
+			adjustedQuantities.add(q * amount); // ✅ Correct multiplication
 		}
+		productQuantities.addAll(adjustedQuantities);
+		productUnits.addAll(newProductUnits);
+
+		notifyDataSetChanged();
 	}
 
 	@Override
@@ -107,36 +103,59 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		return productDates.size();
 	}
 
-	// ✅ Extract quantity & unit from messages and multiply by amount
-	private void parseMessages() {
-		try {
-			double convertedAmount = amount;
-			if ("Acr".equalsIgnoreCase(amountUnit)) {
-				convertedAmount *= 2.5; // ✅ Convert Acr → Vigha
-			}
-
-			for (String message : productMessages) {
-				JSONObject msgObj = new JSONObject(message);
-				double quantity = msgObj.optDouble("q", 1) * convertedAmount;
-				String unit = msgObj.optString("qt", "");
-
-				productQuantities.add(quantity);
-				productUnits.add(unit);
-			}
-		} catch (Exception e) {
-			Log.e("Adapter", "Error parsing messages", e);
-		}
-	}
-	// ✅ Format quantity properly and apply unit conversion
+	// ✅ Corrected unit conversion & number formatting
 	private String formatQuantity(double quantity, String unit) {
-		if (unit.equalsIgnoreCase("ml") && quantity >= 1000) {
-			return String.format(Locale.US, "%.2f Liter", quantity / 1000);
-		} else if (unit.equalsIgnoreCase("g") && quantity >= 1000) {
-			return String.format(Locale.US, "%.2f Kg", quantity / 1000);
+		double convertedQuantity = quantity;
+		String finalUnit = unit;
+
+		switch (unit.toLowerCase()) {
+			case "ml":
+			case "milliliter":
+				if (quantity >= 1000) {
+					convertedQuantity = quantity / 1000;
+					finalUnit = "Letter"; // Convert ML to L
+				} else {
+					finalUnit = "ML"; // Keep ML
+				}
+				break;
+
+			case "g":
+			case "gram":
+				if (quantity >= 1000) {
+					convertedQuantity = quantity / 1000;
+					finalUnit = "KG"; // Convert G to KG
+				} else {
+					finalUnit = "grams"; // Keep grams
+				}
+				break;
+
+			case "kg":
+			case "kilogram":
+				finalUnit = "KG"; // Keep KG
+				break;
+
+			case "l":
+			case "litre":
+			case "liter":
+				finalUnit = "Letter"; // Convert L to Letter
+				break;
+
+			default:
+				finalUnit = unit; // Keep the original unit if unrecognized
+		}
+
+		return formatNumber(convertedQuantity) + " " + finalUnit;
+	}
+
+	// ✅ Formats numbers with commas
+	private String formatNumber(double value) {
+		if (value % 1 == 0) {
+			return String.format(Locale.US, "%,d", (long) value); // Whole number
 		} else {
-			return String.format(Locale.US, "%.2f %s", quantity, unit);
+			return String.format(Locale.US, "%,.2f", value); // Two decimal places
 		}
 	}
+
 
 	// ✅ Open Dialog to Edit Message
 	private void showEditDialog(int position) {

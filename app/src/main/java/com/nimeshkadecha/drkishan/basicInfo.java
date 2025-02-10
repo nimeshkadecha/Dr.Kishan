@@ -130,21 +130,38 @@ public class basicInfo extends AppCompatActivity {
 
 		try {
 			JSONObject jsonObject = new JSONObject(savedJson);
-			if (jsonObject.has("users1")) {
-				JSONObject usersObj = jsonObject.getJSONObject("users1");
+			if (jsonObject.has(userName)) {
+				JSONObject usersObj = jsonObject.getJSONObject(userName);
 				if (usersObj.has(productName) && usersObj.getJSONObject(productName).has(stage)) {
 					JSONObject subStageObj = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
 
-					// ✅ Load saved values from JSON
+					// ✅ Prefill Days (interval)
 					days.setText(subStageObj.optString("interval", ""));
-					date.setText(subStageObj.optString("date", getCurrentDate()));
-					amount.setText(subStageObj.optString("amount", ""));
 
-					// ✅ Set Spinner value if available
-					String unit = subStageObj.optString("countingValue", "Acr");
+					// ✅ Prefill Date (Use current date if not found)
+					date.setText(subStageObj.optString("date", getCurrentDate()));
+
+					// ✅ Extract "count" correctly from JSON and set in Amount field
+					if (subStageObj.has("count")) {
+						Object countObj = subStageObj.get("count");
+						String countValue = (countObj instanceof JSONObject) ? ((JSONObject) countObj).optString("value", "0") : countObj.toString();
+						amount.setText(countValue); // ✅ Set count as amount
+					}
+
+					// ✅ Extract "countValue" correctly from SharedPreferences and preselect in Spinner
+					int countValue = 0;
+					if (prefs.contains("count")) {
+						Object countPref = prefs.getAll().get("count");
+						countValue = (countPref instanceof JSONObject) ? ((JSONObject) countPref).optInt("value", 0) : Integer.parseInt(countPref.toString());
+					}
+
 					ArrayAdapter<String> adapter = (ArrayAdapter<String>) spinner.getAdapter();
-					int spinnerPosition = adapter.getPosition(unit);
-					spinner.setSelection(spinnerPosition);
+					if (adapter != null) {
+						int spinnerPosition = adapter.getPosition(String.valueOf(countValue)); // Convert int to String
+						if (spinnerPosition >= 0) { // Ensure the position exists in the adapter
+							spinner.setSelection(spinnerPosition); // ✅ Preselect unit
+						}
+					}
 				}
 			}
 		} catch (JSONException e) {
@@ -152,7 +169,10 @@ public class basicInfo extends AppCompatActivity {
 		}
 	}
 
+
+
 	// ✅ Validate Fields & Continue
+	// ✅ Save count in SharedPreferences before navigating to allinfo.java
 	private void validateAndContinue() {
 		if (days.getText().toString().isEmpty()) {
 			days.setError("Enter interval days");
@@ -166,6 +186,28 @@ public class basicInfo extends AppCompatActivity {
 			amount.setError("Enter amount");
 			return;
 		}
+
+		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		SharedPreferences.Editor editor = prefs.edit();
+
+		int countValue = 0; // Default count
+		if (!prefs.getString("savedJson", "{}").equals("{}")) {
+			try {
+				JSONObject jsonObject = new JSONObject(prefs.getString("savedJson", "{}"));
+				if (jsonObject.has(userName)) {
+					JSONObject usersObj = jsonObject.getJSONObject(userName);
+					if (usersObj.has(productName) && usersObj.getJSONObject(productName).has(stage)) {
+						JSONObject subStageObj = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
+						countValue = subStageObj.optInt("count", 0);
+					}
+				}
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+
+		editor.putInt("count", countValue); // ✅ Store count
+		editor.apply();
 
 		Intent gotoFinalStep = new Intent(this, allinfo.class);
 		gotoFinalStep.putExtra("productName", productName);

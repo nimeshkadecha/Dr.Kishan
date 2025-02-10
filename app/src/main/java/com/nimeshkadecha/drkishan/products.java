@@ -1,6 +1,7 @@
 package com.nimeshkadecha.drkishan;
 
 import android.annotation.SuppressLint;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -56,7 +57,7 @@ public class products extends AppCompatActivity {
 
 		// 🔄 **Step 1: Always fetch fresh data from Firebase**
 		fetchProductsFromFirebase();
-
+		printSharedPreferences();
 		findViewById(R.id.btnAddProduct).setOnClickListener(view -> showAddProductDialog());
 	}
 
@@ -186,4 +187,11 @@ public class products extends AppCompatActivity {
 		return getSharedPreferences("DrKishan", MODE_PRIVATE)
 										.getString("savedJson", ""); // Default: empty string
 	}
+	private void printSharedPreferences() {
+		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
+
+		Log.d("spNimes", "Stored JSON Data: " + savedJson);
+	}
+
 }
