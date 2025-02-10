@@ -15,6 +15,9 @@
         android:theme="@style/Theme.DrKishan"
         tools:targetApi="31">
         <activity
+            android:name=".selectSubStage"
+            android:exported="false" />
+        <activity
             android:name=".allinfo"
             android:exported="false" />
         <activity

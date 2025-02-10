@@ -4,11 +4,15 @@ import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -21,6 +25,9 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,7 +37,9 @@ import java.util.Objects;
 public class basicInfo extends AppCompatActivity {
 
 	private DatabaseReference reference;
-	private EditText date, days;
+	private EditText date, days, amount;
+	private Spinner spinner;
+	private String userName, productName, stage, subStage;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -39,14 +48,21 @@ public class basicInfo extends AppCompatActivity {
 		setContentView(R.layout.activity_basic_info);
 
 		// Get values from Intent
-		String productName = getIntent().getStringExtra("productName");
-		String stage = getIntent().getStringExtra("stage");
-		String level = getIntent().getStringExtra("level");
-		String userName = getIntent().getStringExtra("userName");
+		userName = getIntent().getStringExtra("userName");
+		productName = getIntent().getStringExtra("productName");
+		stage = getIntent().getStringExtra("stage");
+		subStage = getIntent().getStringExtra("subStage");
 
 		// Initialize UI elements
 		days = findViewById(R.id.days);
 		date = findViewById(R.id.date);
+		amount = findViewById(R.id.editTextText);
+		spinner = findViewById(R.id.spinner);
+
+		// Populate Spinner with "Acr" and "Vigha"
+		ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Acr", "Vigha"});
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		spinner.setAdapter(adapter);
 
 		// Initialize Firebase
 		FirebaseApp.initializeApp(this);
@@ -55,28 +71,41 @@ public class basicInfo extends AppCompatActivity {
 		}
 
 		// Set Firebase reference path
-		reference = FirebaseDatabase.getInstance().getReference(userName + "/" + productName + "/" + level  + "/" + stage);
+		reference = FirebaseDatabase.getInstance().getReference(userName + "/" + productName + "/" + stage + "/" + subStage);
 		Log.d("ENimesh", "Firebase Reference: " + reference.toString());
 
-		// Fetch data from Firebase
+		// Fetch data from SharedPreferences (Local Storage)
+		loadDataFromSharedPreferences();
+
+		// Fetch data from Firebase (if needed)
 		reference.addValueEventListener(new ValueEventListener() {
 			@Override
 			public void onDataChange(@NonNull DataSnapshot snapshot) {
-				// Fetch days (interval value)
-				if (snapshot.child("interval").exists()) {
-					String intervalValue = snapshot.child("interval").getValue().toString();
-					Log.d("FNimesh","snap daate" + intervalValue);
-					days.setText(intervalValue != null ? intervalValue : "");
-				} else {
-					days.setText("");
-				}
+				if (snapshot.exists()) {
+					// Fetch interval (days)
+					if (snapshot.child("interval").exists()) {
+						String intervalValue = snapshot.child("interval").getValue().toString();
+						days.setText(intervalValue != null ? intervalValue : "");
+					}
 
-				// Fetch date
-				if (snapshot.child("date").child("value").exists()) {
-					String dateValue = snapshot.child("date").getValue().toString();
-					date.setText(dateValue != null ? dateValue : "");
-				} else {
-					date.setText(getCurrentDate()); // Default to today's date
+					// Fetch date
+					if (snapshot.child("date").exists()) {
+						String dateValue = snapshot.child("date").getValue().toString();
+						date.setText(dateValue != null ? dateValue : getCurrentDate());
+					}
+
+					// Fetch amount
+					if (snapshot.child("amount").exists()) {
+						String amountValue = snapshot.child("amount").getValue().toString();
+						amount.setText(amountValue != null ? amountValue : "");
+					}
+
+					// Fetch Counting Unit (Spinner)
+					if (snapshot.child("countingValue").exists()) {
+						String unit = snapshot.child("countingValue").getValue().toString();
+						int spinnerPosition = adapter.getPosition(unit);
+						spinner.setSelection(spinnerPosition);
+					}
 				}
 			}
 
@@ -91,27 +120,67 @@ public class basicInfo extends AppCompatActivity {
 		findViewById(R.id.textInputLayoutName2).setOnClickListener(view -> show_date_time_picker());
 
 		// Continue button click listener
-		findViewById(R.id.continueToNext).setOnClickListener(view -> {
-			if (days.getText().toString().isEmpty()) {
-				days.setError("Enter days of increment");
-				return;
-			}
-			if (date.getText().toString().isEmpty()) {
-				date.setError("Select date");
-				return;
-			}
-
-			Intent gotoFinalStep = new Intent(this, allinfo.class);
-			gotoFinalStep.putExtra("productName", productName);
-			gotoFinalStep.putExtra("userName", userName);
-			gotoFinalStep.putExtra("stage", stage);
-			gotoFinalStep.putExtra("level", level);
-			gotoFinalStep.putExtra("date", date.getText().toString());
-			gotoFinalStep.putExtra("days", days.getText().toString());
-			startActivity(gotoFinalStep);
-		});
+		findViewById(R.id.continueToNext).setOnClickListener(view -> validateAndContinue());
 	}
 
+	// ✅ Load data from SharedPreferences
+	private void loadDataFromSharedPreferences() {
+		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
+
+		try {
+			JSONObject jsonObject = new JSONObject(savedJson);
+			if (jsonObject.has("users1")) {
+				JSONObject usersObj = jsonObject.getJSONObject("users1");
+				if (usersObj.has(productName) && usersObj.getJSONObject(productName).has(stage)) {
+					JSONObject subStageObj = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
+
+					// ✅ Load saved values from JSON
+					days.setText(subStageObj.optString("interval", ""));
+					date.setText(subStageObj.optString("date", getCurrentDate()));
+					amount.setText(subStageObj.optString("amount", ""));
+
+					// ✅ Set Spinner value if available
+					String unit = subStageObj.optString("countingValue", "Acr");
+					ArrayAdapter<String> adapter = (ArrayAdapter<String>) spinner.getAdapter();
+					int spinnerPosition = adapter.getPosition(unit);
+					spinner.setSelection(spinnerPosition);
+				}
+			}
+		} catch (JSONException e) {
+			Log.e("SharedPreferences", "Error parsing JSON", e);
+		}
+	}
+
+	// ✅ Validate Fields & Continue
+	private void validateAndContinue() {
+		if (days.getText().toString().isEmpty()) {
+			days.setError("Enter interval days");
+			return;
+		}
+		if (date.getText().toString().isEmpty()) {
+			date.setError("Select date");
+			return;
+		}
+		if (amount.getText().toString().isEmpty()) {
+			amount.setError("Enter amount");
+			return;
+		}
+
+		Intent gotoFinalStep = new Intent(this, allinfo.class);
+		gotoFinalStep.putExtra("productName", productName);
+		gotoFinalStep.putExtra("userName", userName);
+		gotoFinalStep.putExtra("stage", stage);
+		gotoFinalStep.putExtra("subStage", subStage);
+		gotoFinalStep.putExtra("date", date.getText().toString());
+		gotoFinalStep.putExtra("days", days.getText().toString());
+		gotoFinalStep.putExtra("amount", amount.getText().toString());
+		gotoFinalStep.putExtra("unit", spinner.getSelectedItem().toString());
+
+		startActivity(gotoFinalStep);
+	}
+
+	// ✅ Date Picker Dialog
 	private void show_date_time_picker() {
 		InputMethodManager inm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 		if (getCurrentFocus() != null) {
@@ -129,6 +198,7 @@ public class basicInfo extends AppCompatActivity {
 		datePickerDialog.show();
 	}
 
+	// ✅ Get Current Date
 	private String getCurrentDate() {
 		SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 		return df.format(new Date());

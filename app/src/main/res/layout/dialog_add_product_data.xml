@@ -34,33 +34,28 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="10dp"/>
 
-    <!-- Save Button -->
-    <Button
-        android:id="@+id/btnSave"
-        android:layout_width="match_parent"
+    <!-- Message Input -->
+    <EditText
+        android:id="@+id/etProductQuantity"
+        android:layout_width="240dp"
         android:layout_height="wrap_content"
-        android:text="Save"
-        android:visibility="gone"
-        android:textColor="@android:color/white"
+        android:hint="Enter Quentity"
         android:padding="10dp"
+        android:inputType="number"
+        android:maxLines="10"
+        android:theme="@style/TextInputEditText"
         app:layout_constraintTop_toBottomOf="@id/etProductMessage"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp"/>
-
-    <!-- Delete Button (Only for Editing) -->
-    <Button
-        android:id="@+id/btnDelete"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Delete"
-        android:backgroundTint="@android:color/holo_red_dark"
-        android:textColor="@android:color/white"
-        android:padding="10dp"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/btnSave"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="10dp"/>
+
+    <Spinner
+        android:id="@+id/unitSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:padding="10dp"
+        app:layout_constraintEnd_toEndOf="@+id/etProductMessage"
+        app:layout_constraintTop_toBottomOf="@+id/etProductMessage" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

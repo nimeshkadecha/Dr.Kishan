@@ -1,17 +1,32 @@
 package com.nimeshkadecha.drkishan;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Button;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class selectStage extends AppCompatActivity {
+
+	private RecyclerView recyclerView;
+	private ProductAdapter adapter;
+	private List<String> stageList = new ArrayList<>();
+	private String productName, userName;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -19,70 +34,124 @@ public class selectStage extends AppCompatActivity {
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_select_stage);
 
-		String productName = getIntent().getStringExtra("productName");
-		String userName = getIntent().getStringExtra("userName");
-//		String stageList = getIntent().getStringExtra("stageList");
-//		String levelList = getIntent().getStringExtra("levelList");
-//		String dateList = getIntent().getStringExtra("dateList");
-//		String intervalList = getIntent().getStringExtra("intervalList");
-//		String dataList = getIntent().getStringExtra("dataList");
+		productName = getIntent().getStringExtra("productName");
+		userName = getIntent().getStringExtra("userName");
 
-		Log.d("ENimesh", "Received Data: " + productName);
-//		Log.d("ENimesh", "Received Data: " + stageList);
-//		Log.d("ENimesh", "Received Data: " + levelList);
-//		Log.d("ENimesh", "Received Data: " + dateList);
-//		Log.d("ENimesh", "Received Data: " + intervalList);
-//		Log.d("ENimesh", "Received Data: " + dataList);
+		Log.d("ENimesh", "Received Product: " + productName);
 
+		// Setup RecyclerView
+		recyclerView = findViewById(R.id.stageList);
+		recyclerView.setLayoutManager(new LinearLayoutManager(this));
+		adapter = new ProductAdapter(stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
 
-		Button s1 = findViewById(R.id.button_1);
-		Button s2 = findViewById(R.id.button_2);
-		Button s3 = findViewById(R.id.button_3);
+		recyclerView.setAdapter(adapter);
 
-		Button f1 = findViewById(R.id.button_1_f);
-		Button f2 = findViewById(R.id.button_2_f);
-		Button f3 = findViewById(R.id.button_3_f);
+		// ✅ Load Stages from SharedPreferences
+		loadStagesFromPrefs();
 
-		Intent intent = new Intent(this, basicInfo.class);
+		findViewById(R.id.btnStageProduct).setOnClickListener(view -> showAddStageDialog());
+	}
 
-		intent.putExtra("productName", productName);
-		intent.putExtra("userName", userName);
-//		intent.putExtra("stageList", stageList);
-//		intent.putExtra("levelList", levelList);
-//		intent.putExtra("dateList", dateList);
-//		intent.putExtra("intervalList", intervalList);
-//		intent.putExtra("dataList", dataList);
+	/** ✅ Load Stages from SharedPreferences */
+	private void loadStagesFromPrefs() {
+		String jsonString = getJsonFromPrefs();
+		if (jsonString.isEmpty()) {
+			Log.d("SharedPrefs", "No saved data found.");
+			return;
+		}
 
-		s1.setOnClickListener(view -> {
-			intent.putExtra("stage", "1");
-			intent.putExtra("level" ,"start");
-			startActivity(intent);
+		try {
+			JSONObject json = new JSONObject(jsonString);
+			if (!json.has(userName) || !json.getJSONObject(userName).has(productName)) {
+				Log.e("SharedPrefs", "No stages found for product: " + productName);
+				return;
+			}
+
+			stageList.clear();
+			JSONObject productObj = json.getJSONObject(userName).getJSONObject(productName);
+			Iterator<String> stageKeys = productObj.keys();
+			while (stageKeys.hasNext()) {
+				stageList.add(stageKeys.next());
+			}
+
+			if (!stageList.isEmpty()) {
+				runOnUiThread(() -> {
+					adapter.updateList(stageList);
+					adapter.notifyDataSetChanged();
+				});
+			}
+
+		} catch (JSONException e) {
+			Log.e("SharedPrefs", "Error parsing JSON from SharedPreferences", e);
+		}
+	}
+
+	/** ✅ Show Dialog to Add Stage */
+	private void showAddStageDialog() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle("Enter Stage Name");
+
+		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_product, null);
+		EditText etStageName = customView.findViewById(R.id.etProductName);
+		builder.setView(customView);
+
+		builder.setPositiveButton("OK", (dialog, which) -> {
+			String stageName = etStageName.getText().toString().trim();
+
+			if (!stageName.isEmpty()) {
+				addStageToPrefs(stageName);
+				loadStagesFromPrefs(); // ✅ Refresh RecyclerView
+				Toast.makeText(this, "Stage Added: " + stageName, Toast.LENGTH_SHORT).show();
+			} else {
+				Toast.makeText(this, "Stage name cannot be empty!", Toast.LENGTH_SHORT).show();
+			}
 		});
-		s2.setOnClickListener(view -> {
-			intent.putExtra("stage", "2");
-			intent.putExtra("level" ,"start");
-			startActivity(intent);
-			});
-		s3.setOnClickListener(view -> {
-			intent.putExtra("stage", "3");
-			intent.putExtra("level" ,"start");
-			startActivity(intent);
-			});
 
-		f1.setOnClickListener(view -> {
-			intent.putExtra("stage", "1");
-			intent.putExtra("level" ,"flowering");
-			startActivity(intent);
-			});
-		f2.setOnClickListener(view -> {
-			intent.putExtra("stage", "2");
-			intent.putExtra("level" ,"flowering");
-			startActivity(intent);
-			});
-		f3.setOnClickListener(view -> {
-			intent.putExtra("stage", "3");
-			intent.putExtra("level" ,"flowering");
-			startActivity(intent);
-			});
+		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+		builder.create().show();
+	}
+
+	/** ✅ Add Stage to SharedPreferences */
+	private void addStageToPrefs(String stageName) {
+		String jsonString = getJsonFromPrefs();
+		JSONObject json;
+
+		try {
+			json = jsonString.isEmpty() ? new JSONObject() : new JSONObject(jsonString);
+
+			// Ensure user & product nodes exist
+			if (!json.has(userName)) {
+				json.put(userName, new JSONObject());
+			}
+			JSONObject userJson = json.getJSONObject(userName);
+
+			if (!userJson.has(productName)) {
+				userJson.put(productName, new JSONObject());
+			}
+			JSONObject productJson = userJson.getJSONObject(productName);
+
+			// ✅ Add stage (if not already present)
+			if (!productJson.has(stageName)) {
+				productJson.put(stageName, new JSONObject());
+				saveJsonToPrefs(json.toString());
+			} else {
+				Toast.makeText(this, "Stage already exists!", Toast.LENGTH_SHORT).show();
+			}
+
+		} catch (JSONException e) {
+			Log.e("SharedPrefs", "Error updating JSON in SharedPreferences", e);
+		}
+	}
+
+	private void saveJsonToPrefs(String json) {
+		getSharedPreferences("DrKishan", MODE_PRIVATE)
+										.edit()
+										.putString("savedJson", json)
+										.apply();
+	}
+
+	private String getJsonFromPrefs() {
+		return getSharedPreferences("DrKishan", MODE_PRIVATE)
+										.getString("savedJson", ""); // Default: empty string
 	}
 }

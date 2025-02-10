@@ -1,3 +1,11 @@
 <resources>
-    <string name="app_name">Seed2Harvest</string>
+    <string name="app_name">DrKishan</string>
+
+    <!-- ✅ Add Unit Options -->
+    <string-array name="unit_options">
+        <item>g</item>
+        <item>kg</item>
+        <item>ml</item>
+        <item>liter</item>
+    </string-array>
 </resources>

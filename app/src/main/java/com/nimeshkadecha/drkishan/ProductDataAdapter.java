@@ -3,45 +3,45 @@ package com.nimeshkadecha.drkishan;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.ValueEventListener;
-
 import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
 public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.ProductViewHolder> {
 	private List<String> productMessages;
 	private List<String> productDates;
-	private DatabaseReference reference;
+	private List<Double> productQuantities;
+	private List<String> productUnits;
 	private Context context;
+	private double amount;
+	private String amountUnit;
+	private String sharedPrefsKey = "DrKishanData"; // SharedPreferences Key
 
-	private int interval;
-
-	public ProductDataAdapter(Context context, List<String> productDates, List<String> productMessages, DatabaseReference reference,int interval) {
+	public ProductDataAdapter(Context context, List<String> productDates, List<String> productMessages,
+	                          List<Double> productQuantities, List<String> productUnits, double amount, String amountUnit) {
 		this.context = context;
-		this.interval = interval;
-		this.reference = reference;
+		this.amount = amount;
 		this.productDates = (productDates != null) ? productDates : new ArrayList<>();
 		this.productMessages = (productMessages != null) ? productMessages : new ArrayList<>();
+		this.productQuantities = (productQuantities != null) ? productQuantities : new ArrayList<>();
+		this.productUnits = (productUnits != null) ? productUnits : new ArrayList<>();
 	}
 
 	@NonNull
@@ -55,15 +55,51 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	public void onBindViewHolder(@NonNull ProductViewHolder holder, int position) {
 		String date = productDates.get(position);
 		String message = productMessages.get(position);
+		double quantity = (position < productQuantities.size()) ? productQuantities.get(position) : 0;
+		String unit = (position < productUnits.size()) ? productUnits.get(position) : "";
 
-		Log.d("Adapter", "Binding Date: " + date);
-		Log.d("Adapter", "Binding Message: " + message);
+
+		// ✅ Convert Quantity if necessary
+		String formattedQuantity = formatQuantity(quantity, unit);
 
 		holder.txtProduct.setText("Date: " + date);
 		holder.txtDetails.setText("Message: " + message);
+		holder.txtQuantity.setText(formattedQuantity); // ✅ Display calculated quantity
 
 		// ✅ Set Click Listener for Editing
 		holder.itemView.setOnClickListener(v -> showEditDialog(position));
+	}
+
+	public void updateList(List<String> newProductDates, List<String> newProductMessages,
+	                       List<Double> newProductQuantities, List<String> newProductUnits) {
+		if (newProductDates == null || newProductMessages == null || newProductQuantities == null || newProductUnits == null) {
+			Log.e("AdapterUpdate", "Received null values");
+			return;
+		}
+
+		Log.d("AdapterUpdate", "Updating adapter with: " + newProductDates.size() + " items");
+		Log.d("AdapterData", "Dates: " + newProductDates.toString());
+		Log.d("AdapterData", "Messages: " + newProductMessages.toString());
+		Log.d("AdapterData", "Quantities: " + newProductQuantities.toString());
+		Log.d("AdapterData", "Units: " + newProductUnits.toString());
+
+		if (!newProductDates.isEmpty()) {
+			Log.d("AdapterUpdate", "Updating adapter with: " + newProductDates.size() + " items");
+
+			productDates.addAll(newProductDates);
+			productMessages.addAll(newProductMessages);
+			List<Double> adjustedQuantities = new ArrayList<>();
+			for (Double q : newProductQuantities) {
+				adjustedQuantities.add(q * amount); // ✅ Apply multiplication
+			}
+			productQuantities.addAll(adjustedQuantities);
+
+			productUnits.addAll(newProductUnits);
+
+			notifyDataSetChanged();
+		} else {
+			Log.w("AdapterUpdate", "Received empty lists, not updating adapter.");
+		}
 	}
 
 	@Override
@@ -71,27 +107,35 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		return productDates.size();
 	}
 
-	public void updateList(List<String> newProductDates, List<String> newProductMessages) {
-		if (newProductDates == null || newProductMessages == null) {
-			Log.e("Adapter", "updateList() received null lists!");
-			return;
-		}
-
-		Log.d("Adapter", "Received Dates: " + newProductDates.toString());
-		Log.d("Adapter", "Received Messages: " + newProductMessages.toString());
-
-		if (productDates == null) productDates = new ArrayList<>();
-		if (productMessages == null) productMessages = new ArrayList<>();
-
-		// Ensure we are only adding NEW data
-		for (int i = 0; i < newProductDates.size(); i++) {
-			if (!productDates.contains(newProductDates.get(i))) { // Prevent duplicate dates
-				productDates.add(newProductDates.get(i));
-				productMessages.add(newProductMessages.get(i));
+	// ✅ Extract quantity & unit from messages and multiply by amount
+	private void parseMessages() {
+		try {
+			double convertedAmount = amount;
+			if ("Acr".equalsIgnoreCase(amountUnit)) {
+				convertedAmount *= 2.5; // ✅ Convert Acr → Vigha
 			}
-		}
 
-		notifyDataSetChanged();
+			for (String message : productMessages) {
+				JSONObject msgObj = new JSONObject(message);
+				double quantity = msgObj.optDouble("q", 1) * convertedAmount;
+				String unit = msgObj.optString("qt", "");
+
+				productQuantities.add(quantity);
+				productUnits.add(unit);
+			}
+		} catch (Exception e) {
+			Log.e("Adapter", "Error parsing messages", e);
+		}
+	}
+	// ✅ Format quantity properly and apply unit conversion
+	private String formatQuantity(double quantity, String unit) {
+		if (unit.equalsIgnoreCase("ml") && quantity >= 1000) {
+			return String.format(Locale.US, "%.2f Liter", quantity / 1000);
+		} else if (unit.equalsIgnoreCase("g") && quantity >= 1000) {
+			return String.format(Locale.US, "%.2f Kg", quantity / 1000);
+		} else {
+			return String.format(Locale.US, "%.2f %s", quantity, unit);
+		}
 	}
 
 	// ✅ Open Dialog to Edit Message
@@ -106,159 +150,134 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 		// Inflate custom layout
 		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_product_data, null);
+		EditText etProductDate = view.findViewById(R.id.etProductDate);
 		EditText etMessage = view.findViewById(R.id.etProductMessage);
-		EditText etDate = view.findViewById(R.id.etProductDate); // Get Date field
+		EditText etQuantity = view.findViewById(R.id.etProductQuantity);
+		Spinner unitSpinner = view.findViewById(R.id.unitSpinner);
 
-		etMessage.setText(productMessages.get(position)); // Pre-fill current message
+		// ✅ Populate Spinner with units
+		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(context, R.array.unit_options, android.R.layout.simple_spinner_item);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		unitSpinner.setAdapter(adapter);
 
-		// ✅ Hide the Date Field (Set it as GONE)
-		if (etDate != null) {
-			etDate.setVisibility(View.GONE);
+		// ✅ Pre-fill fields
+		etProductDate.setText(productDates.get(position)); // ✅ Pre-fill date
+		etMessage.setText(productMessages.get(position));
+
+		// ✅ Restore original quantity (undo multiplication)
+		double originalQuantity = productQuantities.get(position) / amount;
+		etQuantity.setText(String.valueOf((int) originalQuantity));
+
+		// ✅ Set spinner to correct unit
+		int unitIndex = adapter.getPosition(productUnits.get(position));
+		if (unitIndex >= 0) {
+			unitSpinner.setSelection(unitIndex);
 		}
 
 		builder.setView(view);
 
-		// ✅ Save Button Click (Update Message)
 		builder.setPositiveButton("Save", (dialog, which) -> {
+			String updatedDate = etProductDate.getText().toString().trim();
 			String updatedMessage = etMessage.getText().toString().trim();
+			String selectedUnit = unitSpinner.getSelectedItem().toString();
+
+			// ✅ Get quantity from input or keep original
+			int updatedQuantity;
+			if (!etQuantity.getText().toString().trim().isEmpty()) {
+				updatedQuantity = Integer.parseInt(etQuantity.getText().toString().trim());
+			} else {
+				updatedQuantity = (int) originalQuantity;
+			}
+
+			// ✅ Apply multiplication again before saving
+			double recalculatedQuantity = updatedQuantity * amount;
+
 			if (!updatedMessage.isEmpty()) {
-				updateMessageInFirebase(position, updatedMessage);
+				updateMessageInStorage(position, updatedMessage, recalculatedQuantity, selectedUnit, updatedDate);
 			} else {
 				Toast.makeText(context, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
 			}
 		});
 
-		// ✅ Delete Button Click (Remove Message)
-		builder.setNegativeButton("Delete", (dialog, which) -> {
-			deleteMessageFromFirebase(position);
-		});
-
-		// Cancel Button
+		builder.setNegativeButton("Delete", (dialog, which) -> deleteMessageFromStorage(position));
 		builder.setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss());
 
 		AlertDialog alertDialog = builder.create();
-
-		// ✅ Prevent crash if activity is destroyed
 		if (context instanceof Activity && !((Activity) context).isFinishing()) {
 			alertDialog.show();
 		}
 	}
-	private void deleteMessageFromFirebase(int position) {
-		reference.addListenerForSingleValueEvent(new ValueEventListener() {
-			@Override
-			public void onDataChange(@NonNull DataSnapshot snapshot) {
-				List<String> messages = new ArrayList<>();
 
-				// ✅ Extract existing data from Firebase
-				if (snapshot.child("data").exists()) {
-					try {
-						String rawData = snapshot.child("data").getValue(String.class);
-						JSONArray dataArray = new JSONArray(rawData);
+	// ✅ Update Message in SharedPreferences
+	private void updateMessageInStorage(int position, String updatedMessage, double updatedQuantity, String updatedUnit, String updatedDate) {
+		try {
+			SharedPreferences prefs = context.getSharedPreferences(sharedPrefsKey, Context.MODE_PRIVATE);
+			String jsonData = prefs.getString("savedMessages", "[]");
 
-						for (int i = 0; i < dataArray.length(); i++) {
-							messages.add(dataArray.getString(i));
-						}
-					} catch (Exception e) {
-						Log.e("Firebase", "Error parsing existing data", e);
-						return;
-					}
-				}
+			JSONArray dataArray = new JSONArray(jsonData);
+			JSONObject updatedObject = new JSONObject();
+			updatedObject.put("m", updatedMessage);
+			updatedObject.put("q", updatedQuantity);
+			updatedObject.put("qt", updatedUnit);
+			updatedObject.put("date", updatedDate); // ✅ Save updated date
 
-				// ✅ Remove the selected message
-				if (position >= 0 && position < messages.size()) {
-					messages.remove(position);
-				}
+			dataArray.put(position, updatedObject);
 
-				// ✅ Convert the updated list back to a proper JSON string
-				String updatedDataString = new JSONArray(messages).toString();
+			// ✅ Save updated JSON
+			prefs.edit().putString("savedMessages", dataArray.toString()).apply();
 
-				// ✅ Update Firebase with the corrected format
-				reference.child("data").setValue(updatedDataString)
-												.addOnSuccessListener(aVoid -> {
-													productMessages.remove(position);
-													productDates.remove(position);
+			// ✅ Update UI lists
+			productMessages.set(position, updatedMessage);
+			productQuantities.set(position, updatedQuantity);
+			productUnits.set(position, updatedUnit);
+			productDates.set(position, updatedDate);
 
-													// ✅ Recalculate dates after deletion
-													recalculateDates();
-
-													notifyDataSetChanged();
-													Toast.makeText(context, "Message Deleted Successfully!", Toast.LENGTH_SHORT).show();
-												})
-												.addOnFailureListener(e -> {
-													Toast.makeText(context, "Failed to delete message!", Toast.LENGTH_SHORT).show();
-													Log.e("Firebase", "Error deleting message", e);
-												});
-			}
-
-			@Override
-			public void onCancelled(@NonNull DatabaseError error) {
-				Log.e("Firebase", "Error reading database", error.toException());
-			}
-		});
+			notifyDataSetChanged();
+			Toast.makeText(context, "Message Updated!", Toast.LENGTH_SHORT).show();
+		} catch (Exception e) {
+			Log.e("Storage", "Error updating message", e);
+		}
 	}
 
-	private void recalculateDates() {
-		if (productDates.isEmpty()) return;
-
-		List<String> newDates = new ArrayList<>();
+	// ✅ Delete Message from SharedPreferences (No Changes)
+	private void deleteMessageFromStorage(int position) {
 		try {
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-			Calendar calendar = Calendar.getInstance();
-			calendar.setTime(sdf.parse(productDates.get(0)));
+			SharedPreferences prefs = context.getSharedPreferences(sharedPrefsKey, Context.MODE_PRIVATE);
+			String jsonData = prefs.getString("savedMessages", "[]");
 
-			for (int i = 0; i < productMessages.size(); i++) {
-				newDates.add(sdf.format(calendar.getTime()));
-				calendar.add(Calendar.DAY_OF_MONTH, interval);
+			JSONArray dataArray = new JSONArray(jsonData);
+
+			// ✅ Ensure position is valid before deleting
+			if (position >= 0 && position < dataArray.length()) {
+				dataArray.remove(position);
 			}
 
-			productDates.clear();
-			productDates.addAll(newDates);
+			// ✅ Save updated JSON back to SharedPreferences
+			prefs.edit().putString("savedMessages", dataArray.toString()).apply();
+
+			// ✅ Remove from local lists
+			productMessages.remove(position);
+			productQuantities.remove(position);
+			productUnits.remove(position);
+			productDates.remove(position);
+
 			notifyDataSetChanged();
-		} catch (ParseException e) {
-			Log.e("Date", "Error parsing date", e);
+			Toast.makeText(context, "Message Deleted Successfully!", Toast.LENGTH_SHORT).show();
+		} catch (Exception e) {
+			Log.e("Storage", "Error deleting message", e);
 		}
 	}
 
 
-	// ✅ Update Message in Firebase at the same position
-	private void updateMessageInFirebase(int position, String updatedMessage) {
-		productMessages.set(position, updatedMessage); // Update locally
-		notifyDataSetChanged(); // Refresh UI
-
-		reference.child("data").get().addOnSuccessListener(snapshot -> {
-			if (snapshot.exists()) {
-				List<String> messages = new ArrayList<>();
-
-				try {
-					String dataString = snapshot.getValue(String.class);
-					org.json.JSONArray dataArray = new org.json.JSONArray(dataString);
-
-					for (int i = 0; i < dataArray.length(); i++) {
-						messages.add(dataArray.getString(i));
-					}
-
-					// ✅ Update only the edited message
-					messages.set(position, updatedMessage);
-					String updatedDataString = new org.json.JSONArray(messages).toString();
-
-					// ✅ Save back to Firebase
-					reference.child("data").setValue(updatedDataString)
-													.addOnSuccessListener(aVoid -> Log.d("Firebase", "Message updated successfully!"))
-													.addOnFailureListener(e -> Log.e("Firebase", "Failed to update message", e));
-				} catch (Exception e) {
-					Log.e("Firebase", "Error updating message", e);
-				}
-			}
-		}).addOnFailureListener(e -> Log.e("Firebase", "Failed to read database", e));
-	}
-
 	public static class ProductViewHolder extends RecyclerView.ViewHolder {
-		TextView txtProduct, txtDetails;
+		TextView txtProduct, txtDetails, txtQuantity;
+
 
 		public ProductViewHolder(@NonNull View itemView) {
 			super(itemView);
-			txtProduct = itemView.findViewById(R.id.txtProductName_d);
-			txtDetails = itemView.findViewById(R.id.txtProductDetails);
+			txtProduct = itemView.findViewById(R.id.txtProductName_d); // ✅ Check ID
+			txtDetails = itemView.findViewById(R.id.txtProductDetails); // ✅ Check ID
+			txtQuantity = itemView.findViewById(R.id.quentity); // ✅ Check ID (should be txtQuantity)
 		}
 	}
 }

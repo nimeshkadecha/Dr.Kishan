@@ -1,42 +1,53 @@
 package com.nimeshkadecha.drkishan;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 public class allinfo extends AppCompatActivity {
 
-	private DatabaseReference reference;
 	private RecyclerView recyclerView;
 	private ProductDataAdapter adapter;
 	private List<String> productDates, productMessages;
-	private String productName, stage, level, mainDate, userName;
+	private String productName, stage, subStage, mainDate, userName, unit;
+	private double amount;
 	private int interval;
+
+	List<Double> productQuantities;
+	List<String> productUnits;
+
+	private JSONObject storedData; // Holds data from SharedPreferences
+	private boolean dataChanged = false; // Flag to track changes
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -48,34 +59,174 @@ public class allinfo extends AppCompatActivity {
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
 		stage = getIntent().getStringExtra("stage");
-		level = getIntent().getStringExtra("level");
+		subStage = getIntent().getStringExtra("subStage");
 		mainDate = getIntent().getStringExtra("date");
+		amount = Integer.parseInt(getIntent().getStringExtra("amount"));
+		unit = getIntent().getStringExtra("unit");
+		interval = Integer.parseInt(Objects.requireNonNull(getIntent().getStringExtra("days")));
 
-		interval =Integer.parseInt(Objects.requireNonNull(getIntent().getStringExtra("days")));
+		// Log SharedPreferences data for debugging
+		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 
-		FirebaseApp.initializeApp(this);
-		reference = FirebaseDatabase.getInstance().getReference(userName).child(productName).child(level).child(stage);
+		Log.d("SharedPreferences", "Raw JSON Data: " + savedJson);
 
-		// Setup RecyclerView
 		recyclerView = findViewById(R.id.ProductListWithInfo);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
 		productDates = new ArrayList<>();
 		productMessages = new ArrayList<>();
-		adapter = new ProductDataAdapter(allinfo.this,productDates, productMessages,reference,interval);
-		recyclerView.setAdapter(adapter);
+		productQuantities = new ArrayList<>();
+		productUnits = new ArrayList<>();
 
-		fetchProducts();
+
+		adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits, amount, unit);
+		recyclerView.setAdapter(adapter); // ✅ Now set adapter after loading data
+
+		loadDataFromSharedPreferences(); // ✅ Load data first
+
 
 		// Set Click Listener for Add Button
 		Button btnAdd = findViewById(R.id.button);
 		btnAdd.setOnClickListener(v -> showAddProductDialog());
 
-		// Copy Button Functionality
+		// Copy Button Functionality (No Changes)
 		Button btnCopy = findViewById(R.id.button2_copy);
 		btnCopy.setOnClickListener(v -> showCopyDialog());
 
+		// Save Button - Checks for changes before uploading
+		Button btnSave = findViewById(R.id.button_Upload);
+		btnSave.setOnClickListener(v -> {
+			if (dataChanged) {
+				uploadDataToFirebase();
+			} else {
+				Toast.makeText(this, "No changes detected!", Toast.LENGTH_SHORT).show();
+			}
+		});
 	}
 
+	// ✅ Load Data from SharedPreferences
+	private void loadDataFromSharedPreferences() {
+		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
+
+		Log.d("SharedPreferences", "Raw JSON Data: " + savedJson);
+
+		try {
+			JSONObject jsonObject = new JSONObject(savedJson);
+			if (jsonObject.has("users1")) {
+				JSONObject usersObj = jsonObject.getJSONObject("users1");
+				if (usersObj.has(productName) && usersObj.getJSONObject(productName).has(stage)) {
+					storedData = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
+
+					if (storedData.has("data")) {
+						JSONObject dataObject = storedData.getJSONObject("data");
+						JSONArray messagesArray = new JSONArray(dataObject.getString("value"));
+
+						SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+						Calendar calendar = Calendar.getInstance();
+						calendar.setTime(sdf.parse(mainDate));
+
+						List<String> newProductDates = new ArrayList<>();
+						List<String> newProductMessages = new ArrayList<>();
+						List<Double> newProductQuantities = new ArrayList<>();
+						List<String> newProductUnits = new ArrayList<>();
+
+						for (int i = 0; i < messagesArray.length(); i++) {
+							JSONObject obj = messagesArray.getJSONObject(i);
+							newProductMessages.add(obj.getString("m"));
+							newProductQuantities.add(obj.getDouble("q"));
+							newProductUnits.add(obj.getString("qt"));
+							newProductDates.add(sdf.format(calendar.getTime()));
+							calendar.add(Calendar.DAY_OF_MONTH, interval);
+						}
+
+						// ✅ Ensure adapter is not null before updating list
+						if (adapter != null) {
+							runOnUiThread(() -> {
+								if (adapter == null) {
+									adapter = new ProductDataAdapter(this, newProductDates, newProductMessages, newProductQuantities, newProductUnits, amount, unit);
+									recyclerView.setAdapter(adapter);
+								} else {
+									adapter.updateList(newProductDates, newProductMessages, newProductQuantities, newProductUnits);
+									adapter.notifyDataSetChanged();
+								}
+							});
+
+						} else {
+							Log.e("AdapterUpdate", "Adapter is null, cannot update list");
+						}
+					}
+				}
+			}
+		} catch (JSONException | ParseException e) {
+			Log.e("SharedPreferences", "Error parsing JSON", e);
+		}
+	}
+
+
+	// ✅ Show Dialog to Add Message
+	// ✅ Show Dialog to Add Message with Unit Selection
+	private void showAddProductDialog() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle("Add Message");
+
+		// Inflate custom layout
+		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_product_data, null);
+		EditText etProductMessage = view.findViewById(R.id.etProductMessage);
+		EditText etProductQuantity = view.findViewById(R.id.etProductQuantity);
+		Spinner unitSpinner = view.findViewById(R.id.unitSpinner); // ✅ Add Unit Spinner
+
+		// ✅ Populate Spinner with unit options
+		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+										this, R.array.unit_options, android.R.layout.simple_spinner_item);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		unitSpinner.setAdapter(adapter);
+
+		// Auto-set next available date
+		EditText etProductDate = view.findViewById(R.id.etProductDate);
+		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+		Calendar calendar = Calendar.getInstance();
+		try {
+			if (!productDates.isEmpty()) {
+				calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
+			} else {
+				calendar.setTime(sdf.parse(mainDate));
+			}
+			calendar.add(Calendar.DAY_OF_MONTH, interval);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		etProductDate.setText(sdf.format(calendar.getTime()));
+
+		builder.setView(view);
+
+		builder.setPositiveButton("Save", (dialog, which) -> {
+			String newMessage = etProductMessage.getText().toString().trim();
+			String selectedUnit = unitSpinner.getSelectedItem().toString();
+			int newQuantity;
+
+			try {
+				newQuantity = Integer.parseInt(etProductQuantity.getText().toString().trim());
+			} catch (NumberFormatException e) {
+				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
+				return;
+			}
+
+			if (newMessage.isEmpty()) {
+				Toast.makeText(this, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
+				return;
+			}
+
+			addDataLocally(newMessage, newQuantity, selectedUnit);
+		});
+
+		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+		builder.create().show();
+	}
+
+
+	// ✅ Copy Functionality (No Changes)
 	private void showCopyDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Customize Copy Format");
@@ -104,28 +255,113 @@ public class allinfo extends AppCompatActivity {
 			copyDataToClipboard(header, footer);
 		});
 
-		// ❌ Cancel Button
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-
-		// Show Dialog
 		builder.create().show();
 	}
 
 	private void saveText(String key, String value) {
-		getSharedPreferences("MyAppPrefs", MODE_PRIVATE)
-										.edit()
-										.putString(key, value)
-										.apply();
+		getSharedPreferences("DrKishan", MODE_PRIVATE).edit().putString(key, value).apply();
 	}
 
 	private String getSavedText(String key) {
-		return getSharedPreferences("MyAppPrefs", MODE_PRIVATE)
-										.getString(key, ""); // Default: empty string
+		return getSharedPreferences("DrKishan", MODE_PRIVATE).getString(key, ""); // Default: empty string
 	}
 
+	// ✅ Upload Data to Firebase if changed
+	private void uploadDataToFirebase() {
+		DatabaseReference reference = FirebaseDatabase.getInstance().getReference(userName)
+										.child(productName).child(stage).child(subStage);
 
+		Map<String, Object> updatedValues = new HashMap<>();
+		updatedValues.put("data", storedData.optString("data", "[]"));
+		updatedValues.put("date", mainDate);
+		updatedValues.put("interval", interval);
 
+		reference.updateChildren(updatedValues)
+										.addOnSuccessListener(aVoid -> {
+											Toast.makeText(allinfo.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show();
+											dataChanged = false; // Reset flag
+										})
+										.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
+	}
 
+	// ✅ Add Data Locally to SharedPreferences
+	private void addDataLocally(String newMessage, int quantity, String unit) {
+		try {
+			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+			String savedJson = prefs.getString("savedJson", "{}"); // Default to empty JSON
+
+			JSONObject jsonObject = new JSONObject(savedJson);
+
+			// ✅ Navigate to the correct sub-stage
+			if (!jsonObject.has("users1")) jsonObject.put("users1", new JSONObject());
+			JSONObject usersObj = jsonObject.getJSONObject("users1");
+
+			if (!usersObj.has(productName)) usersObj.put(productName, new JSONObject());
+			JSONObject productObj = usersObj.getJSONObject(productName);
+
+			if (!productObj.has(stage)) productObj.put(stage, new JSONObject());
+			JSONObject stageObj = productObj.getJSONObject(stage);
+
+			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
+			JSONObject subStageObj = stageObj.getJSONObject(subStage);
+
+			// ✅ Append new message with quantity & unit
+			JSONArray messagesArray;
+			if (subStageObj.has("data")) {
+				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
+			} else {
+				messagesArray = new JSONArray();
+			}
+
+			JSONObject newMessageObj = new JSONObject();
+			newMessageObj.put("m", newMessage);
+			newMessageObj.put("q", quantity);
+			newMessageObj.put("qt", unit);
+			messagesArray.put(newMessageObj);
+
+			subStageObj.put("data", messagesArray.toString());
+
+			// ✅ Save updated JSON to SharedPreferences
+			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+
+			// ✅ Update RecyclerView
+			productMessages.add(newMessage);
+			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+			Calendar calendar = Calendar.getInstance();
+			if (!productDates.isEmpty()) {
+				try {
+					calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+			}
+			calendar.add(Calendar.DAY_OF_MONTH, interval);
+			productDates.add(sdf.format(calendar.getTime())); // Adds next date correctly
+
+			double convertedQuantity = quantity * amount; // ✅ Multiply with amount
+			productQuantities.add(convertedQuantity);
+
+			productUnits.add(unit);
+
+// ✅ Notify Adapter
+			runOnUiThread(() -> {
+				if (adapter != null) {
+					adapter.notifyItemInserted(productMessages.size() - 1);
+				}
+			});
+
+			dataChanged = true; // ✅ Mark data as changed
+
+			Toast.makeText(this, "Data Added Locally!", Toast.LENGTH_SHORT).show();
+
+		} catch (JSONException e) {
+			Log.e("SharedPreferences", "Error updating JSON", e);
+			Toast.makeText(this, "Failed to add data!", Toast.LENGTH_SHORT).show();
+		}
+	}
+
+	// ✅ Copy Data to Clipboard
 	private void copyDataToClipboard(String header, String footer) {
 		if (productDates.isEmpty() || productMessages.isEmpty()) {
 			Toast.makeText(this, "No data to copy!", Toast.LENGTH_SHORT).show();
@@ -143,7 +379,7 @@ public class allinfo extends AppCompatActivity {
 		for (int i = 0; i < productDates.size(); i++) {
 			copiedText.append("- *").append(productDates.get(i)).append("*\n");
 
-			// Split message into lines and add "-" before each line
+			// ✅ Split message into multiple lines and add "-" before each line
 			String[] messageLines = productMessages.get(i).split("\n");
 			for (String line : messageLines) {
 				copiedText.append("- ").append(line).append("\n");
@@ -162,135 +398,6 @@ public class allinfo extends AppCompatActivity {
 		clipboard.setPrimaryClip(clip);
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
-	}
-
-
-	private void fetchProducts() {
-		reference.addListenerForSingleValueEvent(new ValueEventListener() {
-			@SuppressLint("NotifyDataSetChanged")
-			@Override
-			public void onDataChange(@NonNull DataSnapshot snapshot) {
-				productMessages.clear();
-				productDates.clear();
-
-				if (snapshot.child("data").exists()) {
-					try {
-						JSONArray dataArray = new JSONArray(snapshot.child("data").getValue(String.class));
-						SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-						Calendar calendar = Calendar.getInstance();
-						calendar.setTime(sdf.parse(mainDate));
-
-						for (int i = 0; i < dataArray.length(); i++) {
-							productMessages.add(dataArray.getString(i));
-							productDates.add(sdf.format(calendar.getTime()));
-							calendar.add(Calendar.DAY_OF_MONTH, interval);
-						}
-					} catch (Exception e) {
-						Log.e("Firebase", "Error parsing data", e);
-					}
-				}
-				adapter.updateList(productDates, productMessages);
-			}
-
-			@Override
-			public void onCancelled(@NonNull DatabaseError error) {
-				Log.e("Firebase", "Error fetching data", error.toException());
-			}
-		});
-	}
-
-	private void showAddProductDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle("Add Message");
-		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_product_data, null);
-		EditText etProductMessage = view.findViewById(R.id.etProductMessage);
-
-		// Auto-set next available date
-		EditText etProductDate = view.findViewById(R.id.etProductDate);
-		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-		Calendar calendar = Calendar.getInstance();
-		try {
-			if (!productDates.isEmpty()) {
-				calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
-			} else {
-				calendar.setTime(sdf.parse(mainDate));
-			}
-			calendar.add(Calendar.DAY_OF_MONTH, interval);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		etProductDate.setText(sdf.format(calendar.getTime()));
-		builder.setView(view);
-
-		builder.setPositiveButton("Save", (dialog, which) -> {
-			String newMessage = etProductMessage.getText().toString().trim();
-			if (newMessage.isEmpty()) {
-				Toast.makeText(this, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
-				return;
-			}
-			addDataToFirebase(newMessage);
-		});
-
-		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-		builder.create().show();
-	}
-
-	private void addDataToFirebase(String newMessage) {
-		reference.addListenerForSingleValueEvent(new ValueEventListener() {
-			@Override
-			public void onDataChange(@NonNull DataSnapshot snapshot) {
-				List<String> messages = new ArrayList<>();
-				boolean isFirstItem = !snapshot.child("data").exists(); // Check if it's the first item
-
-				if (!isFirstItem) {
-					try {
-						// ✅ Convert existing data to JSONArray
-						String existingDataString = snapshot.child("data").getValue(String.class);
-						JSONArray dataArray = new JSONArray(existingDataString);
-
-						// ✅ Add existing messages to the list
-						for (int i = 0; i < dataArray.length(); i++) {
-							messages.add(dataArray.getString(i));
-						}
-					} catch (Exception e) {
-						Log.e("Firebase", "Error parsing existing data", e);
-					}
-				}
-
-				// ✅ Append the new message at the end
-				messages.add(newMessage);
-
-				// ✅ Convert updated list back to JSON format
-				String updatedDataString = new JSONArray(messages).toString();
-
-				// ✅ Prepare data for Firebase update
-				Map<String, Object> updatedValues = new HashMap<>();
-				updatedValues.put("data", updatedDataString);
-
-				// ✅ If it's the first item, also update `date` and `interval`
-				if (isFirstItem || messages.size() == 1) {
-					updatedValues.put("date", mainDate);
-					updatedValues.put("interval", interval);
-				}
-
-				// ✅ Update Firebase
-				reference.updateChildren(updatedValues)
-												.addOnSuccessListener(aVoid -> {
-													Log.d("Firebase", "Data Added Successfully!");
-													fetchProducts(); // Refresh UI
-													Toast.makeText(allinfo.this, "Data Added Successfully!", Toast.LENGTH_SHORT).show();
-												})
-												.addOnFailureListener(e -> {
-													Toast.makeText(allinfo.this, "Failed to add data!", Toast.LENGTH_SHORT).show();
-													Log.e("Firebase", "Error adding data", e);
-												});
-			}
-
-			@Override
-			public void onCancelled(@NonNull DatabaseError error) {
-				Log.e("Firebase", "Error reading database", error.toException());
-			}
-		});
 	}
 
 }
