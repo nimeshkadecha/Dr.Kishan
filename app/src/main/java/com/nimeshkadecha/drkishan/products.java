@@ -1,7 +1,10 @@
 package com.nimeshkadecha.drkishan;
 
-import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -10,18 +13,10 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,11 +27,23 @@ import java.util.List;
 
 public class products extends AppCompatActivity {
 
-	private DatabaseReference reference;
+	private boolean isInternetAvailable() {
+		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		if (cm != null) {
+			NetworkCapabilities capabilities = cm.getNetworkCapabilities(cm.getActiveNetwork());
+			return capabilities != null &&
+											(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+																			capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR));
+		}
+		return false;
+	}
+
+
 	private RecyclerView recyclerView;
 	private ProductAdapter adapter;
 	private List<String> productList = new ArrayList<>();
 	private String userName;
+	private SharedPreferences sharedPreferences;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -45,79 +52,43 @@ public class products extends AppCompatActivity {
 		setContentView(R.layout.activity_products);
 
 		userName = getIntent().getStringExtra("name");
+		sharedPreferences = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 
-		FirebaseApp.initializeApp(this);
-		reference = FirebaseDatabase.getInstance().getReference("");
-
-		// Setup RecyclerView
+		// ✅ Setup RecyclerView
 		recyclerView = findViewById(R.id.productsList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(productList, userName, ProductAdapter.AdapterType.PRODUCTS);
+		adapter = new ProductAdapter(products.this, productList, userName, ProductAdapter.AdapterType.PRODUCTS);
 		recyclerView.setAdapter(adapter);
 
-		// 🔄 **Step 1: Always fetch fresh data from Firebase**
-		fetchProductsFromFirebase();
-		printSharedPreferences();
+		// ✅ Load data from SharedPreferences
+		loadProductsFromPrefs();
+
 		findViewById(R.id.btnAddProduct).setOnClickListener(view -> showAddProductDialog());
+		findViewById(R.id.button2_logOut).setOnClickListener(view -> logoutUser());
 	}
 
-	/** ✅ Fetch Latest Data from Firebase & Store in SharedPreferences */
-	private void fetchProductsFromFirebase() {
-		reference.addListenerForSingleValueEvent(new ValueEventListener() {
-			@Override
-			public void onDataChange(@NonNull DataSnapshot snapshot) {
-				try {
-					JSONObject json = FirebaseJsonConverter.convertDataSnapshotToJson(snapshot);
-					saveJsonToPrefs(json.toString());
-					Log.d("Firebase", "Fetched & Saved JSON: " + json);
-
-					// **Step 2: Load the updated data into RecyclerView**
-					loadProductsFromPrefs();
-				} catch (Exception e) {
-					Log.e("Firebase", "Error fetching data", e);
-				}
-			}
-
-			@Override
-			public void onCancelled(@NonNull DatabaseError error) {
-				Log.e("Firebase", "Error fetching data", error.toException());
-			}
-		});
-	}
-
-	/** ✅ Load Products from SharedPreferences & Update RecyclerView */
+	/** ✅ Load Products from SharedPreferences */
 	private void loadProductsFromPrefs() {
-		String jsonString = getJsonFromPrefs();
-		if (jsonString.isEmpty()) {
-			Log.d("SharedPrefs", "No saved data found.");
-			return;
-		}
+		String jsonString = sharedPreferences.getString("savedJson", "{}");
 
 		try {
 			JSONObject json = new JSONObject(jsonString);
-			if (!json.has(userName)) {
-				Log.e("SharedPrefs", "No data found for user: " + userName);
-				return;
-			}
+			if (!json.has(userName)) return;
 
 			productList.clear();
 			JSONObject usersObj = json.getJSONObject(userName);
 			Iterator<String> prodKeys = usersObj.keys();
 			while (prodKeys.hasNext()) {
 				String prodName = prodKeys.next();
-				Log.d("ENimesh"," pro: " +prodName );
-				if (!prodName.equals("password")) { // ✅ Skip "password" key
+				if (!prodName.equals("password")) {
 					productList.add(prodName);
 				}
 			}
 
 			if (!productList.isEmpty()) {
-				runOnUiThread(() -> {
-					adapter.updateList(productList);
-					adapter.notifyDataSetChanged();
-				});
+				adapter.updateList(productList);
+				adapter.notifyDataSetChanged();
 			}
-
 		} catch (JSONException e) {
 			Log.e("SharedPrefs", "Error parsing JSON from SharedPreferences", e);
 		}
@@ -137,7 +108,7 @@ public class products extends AppCompatActivity {
 
 			if (!productName.isEmpty()) {
 				addProductToPrefs(productName);
-				loadProductsFromPrefs(); // ✅ Refresh RecyclerView
+				loadProductsFromPrefs();
 				Toast.makeText(this, "Product Added: " + productName, Toast.LENGTH_SHORT).show();
 			} else {
 				Toast.makeText(this, "Product name cannot be empty!", Toast.LENGTH_SHORT).show();
@@ -148,15 +119,18 @@ public class products extends AppCompatActivity {
 		builder.create().show();
 	}
 
-	/** ✅ Add Product to SharedPreferences JSON */
+	/** ✅ Add Product to SharedPreferences */
 	private void addProductToPrefs(String productName) {
-		String jsonString = getJsonFromPrefs();
-		JSONObject json;
+
+		if (!isInternetAvailable()) {
+			showNoInternetDialog();
+			return;
+		}
+
+		String jsonString = sharedPreferences.getString("savedJson", "{}");
 
 		try {
-			json = jsonString.isEmpty() ? new JSONObject() : new JSONObject(jsonString);
-
-			// Ensure user node exists
+			JSONObject json = new JSONObject(jsonString);
 			if (!json.has(userName)) {
 				json.put(userName, new JSONObject());
 			}
@@ -166,7 +140,7 @@ public class products extends AppCompatActivity {
 			// ✅ Add product (if not already present)
 			if (!userJson.has(productName)) {
 				userJson.put(productName, new JSONObject());
-				saveJsonToPrefs(json.toString());
+				sharedPreferences.edit().putString("savedJson", json.toString()).apply();
 			} else {
 				Toast.makeText(this, "Product already exists!", Toast.LENGTH_SHORT).show();
 			}
@@ -176,22 +150,21 @@ public class products extends AppCompatActivity {
 		}
 	}
 
-	private void saveJsonToPrefs(String json) {
-		getSharedPreferences("DrKishan", MODE_PRIVATE)
-										.edit()
-										.putString("savedJson", json)
-										.apply();
+	/** ✅ Logout User */
+	private void logoutUser() {
+		sharedPreferences.edit().clear().apply();
+		startActivity(new Intent(this, MainActivity.class));
+		finish();
 	}
 
-	private String getJsonFromPrefs() {
-		return getSharedPreferences("DrKishan", MODE_PRIVATE)
-										.getString("savedJson", ""); // Default: empty string
-	}
-	private void printSharedPreferences() {
-		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
-		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 
-		Log.d("spNimes", "Stored JSON Data: " + savedJson);
+	private void showNoInternetDialog() {
+		new AlertDialog.Builder(this)
+										.setTitle("No Internet Connection")
+										.setMessage("Please check your internet and try again.")
+										.setPositiveButton("Retry", (dialog, which) -> loadProductsFromPrefs())
+										.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+										.show();
 	}
 
 }

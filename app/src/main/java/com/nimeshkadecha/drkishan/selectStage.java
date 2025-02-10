@@ -42,7 +42,7 @@ public class selectStage extends AppCompatActivity {
 		// Setup RecyclerView
 		recyclerView = findViewById(R.id.stageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
+		adapter = new ProductAdapter(selectStage.this,stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
 
 		recyclerView.setAdapter(adapter);
 

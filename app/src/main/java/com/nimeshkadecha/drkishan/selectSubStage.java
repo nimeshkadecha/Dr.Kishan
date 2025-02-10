@@ -43,7 +43,7 @@ public class selectSubStage extends AppCompatActivity {
 		// ✅ Setup RecyclerView
 		recyclerView = findViewById(R.id.subStageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(subStageList, userName, productName, stage, ProductAdapter.AdapterType.SUB_STAGES);
+		adapter = new ProductAdapter(selectSubStage.this,subStageList, userName, productName, stage, ProductAdapter.AdapterType.SUB_STAGES);
 		recyclerView.setAdapter(adapter);
 
 		// ✅ Load Sub-Stages from SharedPreferences
