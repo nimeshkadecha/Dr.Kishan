@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -267,38 +268,191 @@ public class allinfo extends AppCompatActivity {
 		return getSharedPreferences("DrKishan", MODE_PRIVATE).getString(key, ""); // Default: empty string
 	}
 
-	// ✅ Upload Data to Firebase if changed
 	private void uploadDataToFirebase() {
-		DatabaseReference reference = FirebaseDatabase.getInstance().getReference(userName)
-										.child(productName).child(stage).child(subStage);
+		DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
 
-		Map<String, Object> updatedValues = new HashMap<>();
-		updatedValues.put("data", storedData.optString("data", "[]"));
-		updatedValues.put("date", mainDate);
-		updatedValues.put("interval", interval);
+		try {
+			// ✅ Fetch stored JSON from SharedPreferences
+			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+			String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
+			JSONObject jsonObject = new JSONObject(savedJson);
 
-		reference.updateChildren(updatedValues)
-										.addOnSuccessListener(aVoid -> {
-											Toast.makeText(allinfo.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show();
-											dataChanged = false; // Reset flag
-										})
-										.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
+			// ✅ Navigate to the correct path in SharedPreferences data
+			if (!jsonObject.has(userName)) {
+				Toast.makeText(this, "No data found for user!", Toast.LENGTH_SHORT).show();
+				return;
+			}
+
+			JSONObject userObject = jsonObject.getJSONObject(userName);
+			if (!userObject.has(productName)) return;
+			JSONObject productObject = userObject.getJSONObject(productName);
+			if (!productObject.has(stage)) return;
+			JSONObject stageObject = productObject.getJSONObject(stage);
+			if (!stageObject.has(subStage)) return;
+			JSONObject subStageObject = stageObject.getJSONObject(subStage);
+
+			// ✅ Fix `data` field: Convert existing messages to a valid JSON array
+			JSONArray messagesArray = new JSONArray();
+			if (subStageObject.has("data")) {
+				Object dataObject = subStageObject.get("data");
+
+				if (dataObject instanceof JSONObject) { // If `data` is wrapped in a `value` key
+					JSONObject dataJsonObject = (JSONObject) dataObject;
+					if (dataJsonObject.has("value")) {
+						messagesArray = new JSONArray(dataJsonObject.getString("value"));
+					}
+				} else if (dataObject instanceof JSONArray) {
+					messagesArray = (JSONArray) dataObject; // ✅ Already a JSONArray
+				}
+			}
+
+			// ✅ Append all current RecyclerView messages with ORIGINAL QUANTITY
+			messagesArray = new JSONArray();
+			for (int i = 0; i < productMessages.size(); i++) {
+				JSONObject messageObj = new JSONObject();
+				messageObj.put("m", productMessages.get(i));
+
+				// ✅ Store original quantity
+				double originalQuantity = productQuantities.get(i) / amount;
+				messageObj.put("q", originalQuantity);
+
+				messageObj.put("qt", productUnits.get(i));
+				messagesArray.put(messageObj);
+			}
+			subStageObject.put("data", messagesArray.toString()); // ✅ Store as JSON string
+
+			// ✅ Ensure `count`, `countingValue`, `date`, and `interval` are updated correctly
+			String[] keysToFix = {"count", "countingValue", "date", "interval"};
+			for (String key : keysToFix) {
+				if (subStageObject.has(key)) {
+					Object valueObj = subStageObject.get(key);
+					if (valueObj instanceof JSONObject) {
+						JSONObject valueJson = (JSONObject) valueObj;
+						if (valueJson.has("value")) {
+							subStageObject.put(key, valueJson.get("value")); // ✅ Directly replace in `subStageObject`
+						}
+					}
+				}
+			}
+
+			// ✅ Convert updated `subStageObject` to a Map for Firebase
+			Map<String, Object> firebaseData = jsonToMapWithoutValueWrapper(subStageObject);
+
+			Log.d("ENimesh", "FD: " + userName + " /" + productName + "/ " + stage + " /" + subStage + " /" + firebaseData);
+
+			// ✅ Upload only the relevant `subStage` as a proper JSON object
+			reference.child(userName)
+											.child(productName)
+											.child(stage)
+											.child(subStage)
+											.setValue(firebaseData)
+											.addOnSuccessListener(aVoid ->
+																			                      Toast.makeText(allinfo.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show()
+											                     )
+											.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
+
+		} catch (JSONException e) {
+			Log.e("Firebase", "JSON Processing Error", e);
+		}
 	}
 
-	// ✅ Add Data Locally to SharedPreferences
+
+	private Map<String, Object> jsonToMapWithoutValueWrapper(JSONObject jsonObject) throws JSONException {
+		Map<String, Object> map = new HashMap<>();
+		Iterator<String> keys = jsonObject.keys();
+
+		while (keys.hasNext()) {
+			String key = keys.next();
+			Object value = jsonObject.get(key);
+
+			if (value instanceof JSONObject) {
+				map.put(key, jsonToMapWithoutValueWrapper((JSONObject) value)); // ✅ Convert nested JSON objects correctly
+			} else if (value instanceof JSONArray) {
+				map.put(key, value.toString()); // ✅ Store JSON array as a proper string (Firebase format)
+			} else {
+				map.put(key, value); // ✅ Store direct key-value pairs correctly
+			}
+		}
+		return map;
+	}
+
+
+	// ✅ Convert JSONObject to Map<String, Object> WITHOUT "value" nesting
+	private Map<String, Object> jsonToDirectMap(JSONObject jsonObject) throws JSONException {
+		Map<String, Object> map = new HashMap<>();
+		Iterator<String> keys = jsonObject.keys();
+
+		while (keys.hasNext()) {
+			String key = keys.next();
+			Object value = jsonObject.get(key);
+
+			if (value instanceof JSONObject) {
+				map.put(key, jsonToDirectMap((JSONObject) value)); // ✅ Convert nested JSON objects
+			} else if (value instanceof JSONArray) {
+				map.put(key, value.toString()); // ✅ Store JSON array as a string (Firebase-compatible)
+			} else {
+				map.put(key, value); // ✅ Store direct key-value pairs correctly
+			}
+		}
+		return map;
+	}
+
+
+	// ✅ Convert JSONObject to Map<String, Object>
+	private Map<String, Object> jsonToMap(JSONObject jsonObject) throws JSONException {
+		Map<String, Object> map = new HashMap<>();
+		Iterator<String> keys = jsonObject.keys();
+
+		while (keys.hasNext()) {
+			String key = keys.next();
+			Object value = jsonObject.get(key);
+
+			if (value instanceof JSONObject) {
+				map.put(key, jsonToMap((JSONObject) value)); // ✅ Convert nested JSON objects correctly
+			} else if (value instanceof JSONArray) {
+				map.put(key, value.toString()); // ✅ Store JSON array as a proper string
+			} else {
+				map.put(key, value); // ✅ Store direct key-value pairs without nesting
+			}
+		}
+		return map;
+	}
+
+
+	// ✅ Convert JSONArray to List<Object>
+	private List<Object> jsonArrayToList(JSONArray jsonArray) throws JSONException {
+		List<Object> list = new ArrayList<>();
+		for (int i = 0; i < jsonArray.length(); i++) {
+			Object value = jsonArray.get(i);
+
+			if (value instanceof JSONObject) {
+				list.add(jsonToMap((JSONObject) value)); // Convert nested JSONObject
+			} else if (value instanceof JSONArray) {
+				list.add(jsonArrayToList((JSONArray) value)); // Convert nested JSONArray
+			} else {
+				list.add(value);
+			}
+		}
+		return list;
+	}
+
+
+	// ✅ Add Data Locally in the correct format
 	private void addDataLocally(String newMessage, int quantity, String unit) {
 		try {
 			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default to empty JSON
-
 			JSONObject jsonObject = new JSONObject(savedJson);
 
-			// ✅ Navigate to the correct sub-stage
+			// ✅ Navigate to correct structure
 			if (!jsonObject.has("users1")) jsonObject.put("users1", new JSONObject());
 			JSONObject usersObj = jsonObject.getJSONObject("users1");
 
-			if (!usersObj.has(productName)) usersObj.put(productName, new JSONObject());
-			JSONObject productObj = usersObj.getJSONObject(productName);
+			if (!usersObj.has(userName)) usersObj.put(userName, new JSONObject());
+			JSONObject userObj = usersObj.getJSONObject(userName);
+
+			if (!userObj.has(productName)) userObj.put(productName, new JSONObject());
+			JSONObject productObj = userObj.getJSONObject(productName);
 
 			if (!productObj.has(stage)) productObj.put(stage, new JSONObject());
 			JSONObject stageObj = productObj.getJSONObject(stage);
@@ -306,7 +460,7 @@ public class allinfo extends AppCompatActivity {
 			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
 			JSONObject subStageObj = stageObj.getJSONObject(subStage);
 
-			// ✅ Append new message with quantity & unit
+			// ✅ Extract existing messages or create new
 			JSONArray messagesArray;
 			if (subStageObj.has("data")) {
 				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
@@ -314,13 +468,18 @@ public class allinfo extends AppCompatActivity {
 				messagesArray = new JSONArray();
 			}
 
+			// ✅ Append new message
 			JSONObject newMessageObj = new JSONObject();
 			newMessageObj.put("m", newMessage);
 			newMessageObj.put("q", quantity);
 			newMessageObj.put("qt", unit);
 			messagesArray.put(newMessageObj);
 
-			subStageObj.put("data", messagesArray.toString());
+			// ✅ Store updated messages in the correct format
+			JSONObject formattedData = new JSONObject();
+			formattedData.put("value", messagesArray.toString());
+
+			subStageObj.put("data", formattedData);
 
 			// ✅ Save updated JSON to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
@@ -341,10 +500,9 @@ public class allinfo extends AppCompatActivity {
 
 			double convertedQuantity = quantity * amount; // ✅ Multiply with amount
 			productQuantities.add(convertedQuantity);
-
 			productUnits.add(unit);
 
-// ✅ Notify Adapter
+			// ✅ Notify Adapter
 			runOnUiThread(() -> {
 				if (adapter != null) {
 					adapter.notifyItemInserted(productMessages.size() - 1);
