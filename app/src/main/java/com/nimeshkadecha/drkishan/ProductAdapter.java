@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -96,9 +97,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 		// ✅ Long-click for deletion
 		holder.txtItem.setOnLongClickListener(v -> {
-			showDeleteConfirmation(v.getContext(), position);
-			return true; // ✅ Return true to consume the long-click event
+			showEditDeleteDialog(v.getContext(), position, itemList.get(position));
+			return true;
 		});
+
 	}
 
 
@@ -191,4 +193,103 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			txtItem = itemView.findViewById(R.id.txtProductName);
 		}
 	}
+
+	private void showEditDeleteDialog(Context context, int position, String currentName) {
+		AlertDialog.Builder builder = new AlertDialog.Builder(context);
+		builder.setTitle("Edit/Delete Item");
+
+		// ✅ Inflate existing dialog layout
+		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_product, null);
+		EditText etProductName = view.findViewById(R.id.etProductName);
+		etProductName.setText(currentName); // ✅ Pre-fill existing name
+
+		builder.setView(view);
+
+		builder.setPositiveButton("Edit", (dialog, which) -> {
+			String newName = etProductName.getText().toString().trim();
+			if (!newName.isEmpty() && !newName.equals(currentName)) {
+				updateItemInStorage(context, position, currentName, newName);
+			} else {
+				Toast.makeText(context, "No changes made!", Toast.LENGTH_SHORT).show();
+			}
+		});
+
+		builder.setNegativeButton("Delete", (dialog, which) -> {
+			deleteItemFromStorage(context, position, currentName);
+		});
+
+		builder.setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss());
+
+		builder.create().show();
+	}
+	private void updateItemInStorage(Context context, int position, String oldName, String newName) {
+		try {
+			// ✅ Fetch SharedPreferences
+			SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+			String savedJson = prefs.getString("savedJson", "{}");
+			JSONObject jsonObject = new JSONObject(savedJson);
+
+			if (adapterType == AdapterType.PRODUCTS) {
+				if (jsonObject.has(userName) && jsonObject.getJSONObject(userName).has(oldName)) {
+					JSONObject productData = jsonObject.getJSONObject(userName).getJSONObject(oldName);
+					jsonObject.getJSONObject(userName).remove(oldName);
+					jsonObject.getJSONObject(userName).put(newName, productData);
+				}
+			} else if (adapterType == AdapterType.STAGES) {
+				if (jsonObject.has(userName) && jsonObject.getJSONObject(userName).has(productName)) {
+					JSONObject stageData = jsonObject.getJSONObject(userName).getJSONObject(productName).getJSONObject(oldName);
+					jsonObject.getJSONObject(userName).getJSONObject(productName).remove(oldName);
+					jsonObject.getJSONObject(userName).getJSONObject(productName).put(newName, stageData);
+				}
+			} else if (adapterType == AdapterType.SUB_STAGES) {
+				if (jsonObject.has(userName) && jsonObject.getJSONObject(userName).has(productName) &&
+												jsonObject.getJSONObject(userName).getJSONObject(productName).has(stage)) {
+					JSONObject subStageData = jsonObject.getJSONObject(userName)
+													.getJSONObject(productName)
+													.getJSONObject(stage)
+													.getJSONObject(oldName);
+					jsonObject.getJSONObject(userName).getJSONObject(productName).getJSONObject(stage).remove(oldName);
+					jsonObject.getJSONObject(userName).getJSONObject(productName).getJSONObject(stage).put(newName, subStageData);
+				}
+			}
+
+			// ✅ Save Updated JSON to SharedPreferences
+			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+
+			// ✅ Update Firebase
+			updateFirebase(oldName, newName);
+
+			// ✅ Update UI
+			itemList.set(position, newName);
+			notifyItemChanged(position);
+
+			Toast.makeText(context, "Item Updated Successfully!", Toast.LENGTH_SHORT).show();
+
+		} catch (JSONException e) {
+			Log.e("Update", "Error updating item", e);
+		}
+	}
+
+	private void updateFirebase(String oldName, String newName) {
+		DatabaseReference reference = FirebaseDatabase.getInstance().getReference(userName);
+
+		if (adapterType == AdapterType.PRODUCTS) {
+			reference.child(oldName).get().addOnSuccessListener(dataSnapshot -> {
+				reference.child(newName).setValue(dataSnapshot.getValue()); // ✅ Copy old data
+				reference.child(oldName).removeValue(); // ✅ Remove old entry
+			});
+		} else if (adapterType == AdapterType.STAGES) {
+			reference.child(productName).child(oldName).get().addOnSuccessListener(dataSnapshot -> {
+				reference.child(productName).child(newName).setValue(dataSnapshot.getValue());
+				reference.child(productName).child(oldName).removeValue();
+			});
+		} else if (adapterType == AdapterType.SUB_STAGES) {
+			reference.child(productName).child(stage).child(oldName).get().addOnSuccessListener(dataSnapshot -> {
+				reference.child(productName).child(stage).child(newName).setValue(dataSnapshot.getValue());
+				reference.child(productName).child(stage).child(oldName).removeValue();
+			});
+		}
+	}
+
+
 }
