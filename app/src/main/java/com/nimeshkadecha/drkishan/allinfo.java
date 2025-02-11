@@ -46,9 +46,7 @@ public class allinfo extends AppCompatActivity {
 
 	List<Double> productQuantities;
 	List<String> productUnits;
-
 	private JSONObject storedData; // Holds data from SharedPreferences
-	private boolean dataChanged = false; // Flag to track changes
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +60,7 @@ public class allinfo extends AppCompatActivity {
 		stage = getIntent().getStringExtra("stage");
 		subStage = getIntent().getStringExtra("subStage");
 		mainDate = getIntent().getStringExtra("date");
-		amount = Integer.parseInt(getIntent().getStringExtra("amount"));
+		amount = Double.parseDouble(getIntent().getStringExtra("amount"));
 		unit = getIntent().getStringExtra("unit");
 		interval = Integer.parseInt(Objects.requireNonNull(getIntent().getStringExtra("days")));
 
@@ -79,7 +77,9 @@ public class allinfo extends AppCompatActivity {
 		productQuantities = new ArrayList<>();
 		productUnits = new ArrayList<>();
 
-		adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits, amount, unit);
+		adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits,
+		                                 amount, unit, userName, productName, stage, subStage);
+
 		recyclerView.setAdapter(adapter); // ✅ Set adapter after loading data
 
 		loadDataFromSharedPreferences(); // ✅ Load data first
@@ -158,7 +158,9 @@ public class allinfo extends AppCompatActivity {
 						adapter.updateList(newProductDates, newProductMessages, newProductQuantities, newProductUnits);
 						adapter.notifyDataSetChanged();
 					} else {
-						adapter = new ProductDataAdapter(this, newProductDates, newProductMessages, newProductQuantities, newProductUnits, amount, unit);
+						adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits,
+						                                 amount, unit, userName, productName, stage, subStage);
+
 						recyclerView.setAdapter(adapter);
 					}
 				});
@@ -209,10 +211,10 @@ public class allinfo extends AppCompatActivity {
 		builder.setPositiveButton("Save", (dialog, which) -> {
 			String newMessage = etProductMessage.getText().toString().trim();
 			String selectedUnit = unitSpinner.getSelectedItem().toString();
-			int newQuantity;
+			Double newQuantity;
 
 			try {
-				newQuantity = Integer.parseInt(etProductQuantity.getText().toString().trim());
+				newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim());
 			} catch (NumberFormatException e) {
 				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
 				return;
@@ -387,82 +389,19 @@ public class allinfo extends AppCompatActivity {
 	}
 
 
-	// ✅ Convert JSONObject to Map<String, Object> WITHOUT "value" nesting
-	private Map<String, Object> jsonToDirectMap(JSONObject jsonObject) throws JSONException {
-		Map<String, Object> map = new HashMap<>();
-		Iterator<String> keys = jsonObject.keys();
-
-		while (keys.hasNext()) {
-			String key = keys.next();
-			Object value = jsonObject.get(key);
-
-			if (value instanceof JSONObject) {
-				map.put(key, jsonToDirectMap((JSONObject) value)); // ✅ Convert nested JSON objects
-			} else if (value instanceof JSONArray) {
-				map.put(key, value.toString()); // ✅ Store JSON array as a string (Firebase-compatible)
-			} else {
-				map.put(key, value); // ✅ Store direct key-value pairs correctly
-			}
-		}
-		return map;
-	}
-
-
-	// ✅ Convert JSONObject to Map<String, Object>
-	private Map<String, Object> jsonToMap(JSONObject jsonObject) throws JSONException {
-		Map<String, Object> map = new HashMap<>();
-		Iterator<String> keys = jsonObject.keys();
-
-		while (keys.hasNext()) {
-			String key = keys.next();
-			Object value = jsonObject.get(key);
-
-			if (value instanceof JSONObject) {
-				map.put(key, jsonToMap((JSONObject) value)); // ✅ Convert nested JSON objects correctly
-			} else if (value instanceof JSONArray) {
-				map.put(key, value.toString()); // ✅ Store JSON array as a proper string
-			} else {
-				map.put(key, value); // ✅ Store direct key-value pairs without nesting
-			}
-		}
-		return map;
-	}
-
-
-	// ✅ Convert JSONArray to List<Object>
-	private List<Object> jsonArrayToList(JSONArray jsonArray) throws JSONException {
-		List<Object> list = new ArrayList<>();
-		for (int i = 0; i < jsonArray.length(); i++) {
-			Object value = jsonArray.get(i);
-
-			if (value instanceof JSONObject) {
-				list.add(jsonToMap((JSONObject) value)); // Convert nested JSONObject
-			} else if (value instanceof JSONArray) {
-				list.add(jsonArrayToList((JSONArray) value)); // Convert nested JSONArray
-			} else {
-				list.add(value);
-			}
-		}
-		return list;
-	}
-
-
 	// ✅ Add Data Locally in the correct format
-	private void addDataLocally(String newMessage, int quantity, String unit) {
+	private void addDataLocally(String newMessage, Double quantity, String unit) {
 		try {
 			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
-			String savedJson = prefs.getString("savedJson", "{}"); // Default to empty JSON
+			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
 			JSONObject jsonObject = new JSONObject(savedJson);
 
-			// ✅ Navigate to correct structure
+			// ✅ Ensure correct structure exists in SharedPreferences
 			if (!jsonObject.has(userName)) jsonObject.put(userName, new JSONObject());
 			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
-			if (!usersObj.has(userName)) usersObj.put(userName, new JSONObject());
-			JSONObject userObj = usersObj.getJSONObject(userName);
-
-			if (!userObj.has(productName)) userObj.put(productName, new JSONObject());
-			JSONObject productObj = userObj.getJSONObject(productName);
+			if (!usersObj.has(productName)) usersObj.put(productName, new JSONObject());
+			JSONObject productObj = usersObj.getJSONObject(productName);
 
 			if (!productObj.has(stage)) productObj.put(stage, new JSONObject());
 			JSONObject stageObj = productObj.getJSONObject(stage);
@@ -470,10 +409,14 @@ public class allinfo extends AppCompatActivity {
 			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
 			JSONObject subStageObj = stageObj.getJSONObject(subStage);
 
-			// ✅ Extract existing messages or create new
+			// ✅ Retrieve or create messages array
 			JSONArray messagesArray;
 			if (subStageObj.has("data")) {
-				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
+				try {
+					messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
+				} catch (JSONException e) {
+					messagesArray = new JSONArray();
+				}
 			} else {
 				messagesArray = new JSONArray();
 			}
@@ -485,14 +428,14 @@ public class allinfo extends AppCompatActivity {
 			newMessageObj.put("qt", unit);
 			messagesArray.put(newMessageObj);
 
-			// ✅ Store updated messages in the correct format
+			// ✅ Store updated messages in correct format
 			JSONObject formattedData = new JSONObject();
 			formattedData.put("value", messagesArray.toString());
-
 			subStageObj.put("data", formattedData);
 
 			// ✅ Save updated JSON to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+			storedData = subStageObj; // ✅ Ensure `storedData` is updated
 
 			// ✅ Update RecyclerView
 			productMessages.add(newMessage);
@@ -506,7 +449,7 @@ public class allinfo extends AppCompatActivity {
 				}
 			}
 			calendar.add(Calendar.DAY_OF_MONTH, interval);
-			productDates.add(sdf.format(calendar.getTime())); // Adds next date correctly
+			productDates.add(sdf.format(calendar.getTime())); // ✅ Adds next date correctly
 
 			double convertedQuantity = quantity * amount; // ✅ Multiply with amount
 			productQuantities.add(convertedQuantity);
@@ -519,8 +462,6 @@ public class allinfo extends AppCompatActivity {
 				}
 			});
 
-			dataChanged = true; // ✅ Mark data as changed
-
 			Toast.makeText(this, "Data Added Locally!", Toast.LENGTH_SHORT).show();
 
 		} catch (JSONException e) {
@@ -528,6 +469,7 @@ public class allinfo extends AppCompatActivity {
 			Toast.makeText(this, "Failed to add data!", Toast.LENGTH_SHORT).show();
 		}
 	}
+
 
 	// ✅ Copy Data to Clipboard
 	private void copyDataToClipboard(String header, String footer) {
@@ -626,5 +568,10 @@ public class allinfo extends AppCompatActivity {
 		}
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		loadDataFromSharedPreferences(); // ✅ Ensure RecyclerView is updated when reopening the page
+	}
 
 }

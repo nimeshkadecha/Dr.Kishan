@@ -37,6 +37,11 @@
         <item name="android:textColor">@color/white</item>
     </style>
 
+
+    <style name="ToolBar">
+        <item name="background">@color/night_back</item>
+    </style>
+
     <style name="TextInputEditText">
         <item name="android:textColor">@color/white</item>
     </style>

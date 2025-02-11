@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DrKishan</string>
+    <string name="app_name">Farm Planner</string>
 
     <!-- ✅ Add Unit Options -->
     <string-array name="unit_options">

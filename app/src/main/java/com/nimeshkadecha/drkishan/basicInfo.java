@@ -60,7 +60,7 @@ public class basicInfo extends AppCompatActivity {
 		spinner = findViewById(R.id.spinner);
 
 		// Populate Spinner with "Acr" and "Vigha"
-		ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Acr", "Vigha"});
+		ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Vigha", "Acr"});
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
 
@@ -169,13 +169,11 @@ public class basicInfo extends AppCompatActivity {
 		}
 	}
 
-
-
 	// ✅ Validate Fields & Continue
 	// ✅ Save count in SharedPreferences before navigating to allinfo.java
 	private void validateAndContinue() {
 		if (days.getText().toString().isEmpty()) {
-			days.setError("Enter interval days");
+			days.setError("Enter interval da ys");
 			return;
 		}
 		if (date.getText().toString().isEmpty()) {
@@ -245,4 +243,13 @@ public class basicInfo extends AppCompatActivity {
 		SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 		return df.format(new Date());
 	}
+
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		loadDataFromSharedPreferences(); // ✅ Refresh RecyclerView every time the page is reopened
+	}
+
+
 }

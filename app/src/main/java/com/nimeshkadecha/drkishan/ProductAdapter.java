@@ -103,7 +103,6 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 	}
 
-
 	@Override
 	public int getItemCount() {
 		return itemList.size();
@@ -118,20 +117,6 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		this.itemList.addAll(newItemList);
 		notifyDataSetChanged();
 	}
-
-	// ✅ Show Confirmation Dialog Before Deleting
-	private void showDeleteConfirmation(Context context, int position) {
-		new AlertDialog.Builder(context)
-										.setTitle("Delete Confirmation")
-										.setMessage("Are you sure you want to delete this item? This action cannot be undone.")
-										.setPositiveButton("Delete", (dialog, which) -> {
-											String itemToDelete = itemList.get(position);
-											deleteItemFromStorage(context, position, itemToDelete);
-										})
-										.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-										.show();
-	}
-
 
 	private void deleteItemFromStorage(Context context, int position, String itemToDelete) {
 		try {

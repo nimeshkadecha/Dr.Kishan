@@ -41,7 +41,7 @@
         android:layout_height="wrap_content"
         android:hint="Enter Quentity"
         android:padding="10dp"
-        android:inputType="number"
+        android:inputType="numberDecimal"
         android:maxLines="10"
         android:theme="@style/TextInputEditText"
         app:layout_constraintTop_toBottomOf="@id/etProductMessage"

@@ -34,15 +34,26 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	private String amountUnit;
 	private String sharedPrefsKey = "DrKishanData"; // SharedPreferences Key
 
+	private String userName, productName, stage, subStage;
+
 	public ProductDataAdapter(Context context, List<String> productDates, List<String> productMessages,
-	                          List<Double> productQuantities, List<String> productUnits, double amount, String amountUnit) {
+	                          List<Double> productQuantities, List<String> productUnits,
+	                          double amount, String amountUnit,
+	                          String userName, String productName, String stage, String subStage) {
 		this.context = context;
 		this.amount = amount;
+		this.amountUnit = amountUnit;
+		this.userName = userName;
+		this.productName = productName;
+		this.stage = stage;
+		this.subStage = subStage;
+
 		this.productDates = (productDates != null) ? productDates : new ArrayList<>();
 		this.productMessages = (productMessages != null) ? productMessages : new ArrayList<>();
 		this.productQuantities = (productQuantities != null) ? productQuantities : new ArrayList<>();
 		this.productUnits = (productUnits != null) ? productUnits : new ArrayList<>();
 	}
+
 
 	@NonNull
 	@Override
@@ -149,12 +160,10 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 	// ✅ Formats numbers with commas
 	private String formatNumber(double value) {
-		if (value % 1 == 0) {
-			return String.format(Locale.US, "%,d", (long) value); // Whole number
-		} else {
-			return String.format(Locale.US, "%,.2f", value); // Two decimal places
-		}
+		double roundedValue = Math.round(value * 100.0) / 100.0; // ✅ Round to 2 decimal places
+		return String.format(Locale.US, "%.2f", roundedValue); // ✅ Always 2 decimal places
 	}
+
 
 
 	// ✅ Open Dialog to Edit Message
@@ -183,9 +192,11 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		etProductDate.setText(productDates.get(position)); // ✅ Pre-fill date
 		etMessage.setText(productMessages.get(position));
 
-		// ✅ Restore original quantity (undo multiplication)
+		// ✅ Restore original quantity (undo multiplication for editing)
 		double originalQuantity = productQuantities.get(position) / amount;
-		etQuantity.setText(String.valueOf((int) originalQuantity));
+
+		// ✅ Set formatted value in EditText (always 2 decimal places)
+		etQuantity.setText(formatNumber(originalQuantity));
 
 		// ✅ Set spinner to correct unit
 		int unitIndex = adapter.getPosition(productUnits.get(position));
@@ -201,11 +212,11 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			String selectedUnit = unitSpinner.getSelectedItem().toString();
 
 			// ✅ Get quantity from input or keep original
-			int updatedQuantity;
+			double updatedQuantity;
 			if (!etQuantity.getText().toString().trim().isEmpty()) {
-				updatedQuantity = Integer.parseInt(etQuantity.getText().toString().trim());
+				updatedQuantity = Double.parseDouble(etQuantity.getText().toString().trim());
 			} else {
-				updatedQuantity = (int) originalQuantity;
+				updatedQuantity = originalQuantity;
 			}
 
 			// ✅ Apply multiplication again before saving
@@ -227,27 +238,50 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		}
 	}
 
+
+
 	// ✅ Update Message in SharedPreferences
 	private void updateMessageInStorage(int position, String updatedMessage, double updatedQuantity, String updatedUnit, String updatedDate) {
 		try {
-			SharedPreferences prefs = context.getSharedPreferences(sharedPrefsKey, Context.MODE_PRIVATE);
-			String jsonData = prefs.getString("savedMessages", "[]");
+			SharedPreferences prefs = context.getSharedPreferences("DrKishan", Context.MODE_PRIVATE);
+			String savedJson = prefs.getString("savedJson", "{}");
+			JSONObject jsonObject = new JSONObject(savedJson);
 
-			JSONArray dataArray = new JSONArray(jsonData);
-			JSONObject updatedObject = new JSONObject();
-			updatedObject.put("m", updatedMessage);
-			updatedObject.put("q", updatedQuantity);
-			updatedObject.put("qt", updatedUnit);
-			updatedObject.put("date", updatedDate); // ✅ Save updated date
+			if (!jsonObject.has(userName)) return;
+			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
-			dataArray.put(position, updatedObject);
+			if (!usersObj.has(productName)) return;
+			JSONObject productObj = usersObj.getJSONObject(productName);
 
-			// ✅ Save updated JSON
-			prefs.edit().putString("savedMessages", dataArray.toString()).apply();
+			if (!productObj.has(stage)) return;
+			JSONObject stageObj = productObj.getJSONObject(stage);
 
-			// ✅ Update UI lists
+			if (!stageObj.has(subStage)) return;
+			JSONObject subStageObj = stageObj.getJSONObject(subStage);
+
+			JSONArray messagesArray = new JSONArray();
+			if (subStageObj.has("data")) {
+				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
+			}
+
+			if (position >= 0 && position < messagesArray.length()) {
+				JSONObject updatedObject = new JSONObject();
+				updatedObject.put("m", updatedMessage);
+				updatedObject.put("q", updatedQuantity / amount); // ✅ Store RAW value
+				updatedObject.put("qt", updatedUnit);
+				updatedObject.put("date", updatedDate);
+
+				messagesArray.put(position, updatedObject);
+			}
+
+			JSONObject formattedData = new JSONObject();
+			formattedData.put("value", messagesArray.toString());
+			subStageObj.put("data", formattedData);
+
+			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+
 			productMessages.set(position, updatedMessage);
-			productQuantities.set(position, updatedQuantity);
+			productQuantities.set(position, updatedQuantity); // ✅ Save RAW value in list
 			productUnits.set(position, updatedUnit);
 			productDates.set(position, updatedDate);
 
@@ -258,23 +292,41 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		}
 	}
 
+
 	// ✅ Delete Message from SharedPreferences (No Changes)
 	private void deleteMessageFromStorage(int position) {
 		try {
-			SharedPreferences prefs = context.getSharedPreferences(sharedPrefsKey, Context.MODE_PRIVATE);
-			String jsonData = prefs.getString("savedMessages", "[]");
+			SharedPreferences prefs = context.getSharedPreferences("DrKishan", Context.MODE_PRIVATE);
+			String savedJson = prefs.getString("savedJson", "{}");
+			JSONObject jsonObject = new JSONObject(savedJson);
 
-			JSONArray dataArray = new JSONArray(jsonData);
+			if (!jsonObject.has(userName)) return;
+			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
-			// ✅ Ensure position is valid before deleting
-			if (position >= 0 && position < dataArray.length()) {
-				dataArray.remove(position);
+			if (!usersObj.has(productName)) return;
+			JSONObject productObj = usersObj.getJSONObject(productName);
+
+			if (!productObj.has(stage)) return;
+			JSONObject stageObj = productObj.getJSONObject(stage);
+
+			if (!stageObj.has(subStage)) return;
+			JSONObject subStageObj = stageObj.getJSONObject(subStage);
+
+			JSONArray messagesArray = new JSONArray();
+			if (subStageObj.has("data")) {
+				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
 			}
 
-			// ✅ Save updated JSON back to SharedPreferences
-			prefs.edit().putString("savedMessages", dataArray.toString()).apply();
+			if (position >= 0 && position < messagesArray.length()) {
+				messagesArray.remove(position);
+			}
 
-			// ✅ Remove from local lists
+			JSONObject formattedData = new JSONObject();
+			formattedData.put("value", messagesArray.toString());
+			subStageObj.put("data", formattedData);
+
+			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+
 			productMessages.remove(position);
 			productQuantities.remove(position);
 			productUnits.remove(position);
@@ -286,6 +338,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			Log.e("Storage", "Error deleting message", e);
 		}
 	}
+
 
 
 	public static class ProductViewHolder extends RecyclerView.ViewHolder {

@@ -1,5 +1,6 @@
 package com.nimeshkadecha.drkishan;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -26,6 +27,8 @@ import java.util.Iterator;
 import java.util.List;
 
 public class products extends AppCompatActivity {
+
+	android.app.AlertDialog.Builder alert;
 
 	private boolean isInternetAvailable() {
 		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -166,5 +169,21 @@ public class products extends AppCompatActivity {
 										.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
 										.show();
 	}
+
+	//  Alert dialog box for Exiting Application ======================================================
+	@SuppressLint("MissingSuperCall")
+	@Override
+	public void onBackPressed() {
+
+			alert = new android.app.AlertDialog.Builder(products.this);
+			alert.setTitle("Confirmation");
+			alert.setMessage("Are you sure you want to exit?");
+			alert.setPositiveButton("Exit", (dialogInterface, i) -> finishAffinity());
+			alert.setNegativeButton("No", (dialogInterface, i) -> dialogInterface.dismiss());
+
+			alert.show();
+
+	}
+
 
 }
