@@ -7,6 +7,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -20,6 +22,7 @@ import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONObject;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +44,13 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		userName = getIntent().getStringExtra("userName");
 		productName = getIntent().getStringExtra("productName");
 		stage = getIntent().getStringExtra("stage");
+
+		// ✅ setting header
+		TextView header = findViewById(R.id.textView_Header);
+		header.setText(MessageFormat.format("FP > {0} > {1}",productName, stage));
+		header.setTextSize(20f);
+		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
+		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
 		// ✅ Setup RecyclerView
 		recyclerView = findViewById(R.id.subStageList);

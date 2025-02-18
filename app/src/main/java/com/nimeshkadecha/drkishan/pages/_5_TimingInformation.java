@@ -9,7 +9,9 @@ import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -26,6 +28,7 @@ import com.nimeshkadecha.drkishan.R;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -49,6 +52,13 @@ public class _5_TimingInformation extends AppCompatActivity {
 		productName = getIntent().getStringExtra("productName");
 		stage = getIntent().getStringExtra("stage");
 		subStage = getIntent().getStringExtra("subStage");
+
+		// ✅ setting header
+		TextView header = findViewById(R.id.textView_Header);
+		header.setText(MessageFormat.format("FP > {0} > {1} > {2}",productName, stage, subStage));
+		header.setTextSize(20f);
+		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
+		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
 		// Initialize UI elements
 		days = findViewById(R.id.days);

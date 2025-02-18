@@ -1,6 +1,8 @@
 package com.nimeshkadecha.drkishan.pages;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,7 +11,9 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -26,6 +30,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -65,6 +70,14 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		amount = Double.parseDouble(getIntent().getStringExtra("amount"));
 		unit = getIntent().getStringExtra("unit");
 		interval = Integer.parseInt(Objects.requireNonNull(getIntent().getStringExtra("days")));
+
+		// ✅ setting header
+		TextView header = findViewById(R.id.textView_Header);
+		header.setText(MessageFormat.format("FP > {0} > {1} > {2}", productName, stage, subStage));
+		header.setTextSize(20f);
+		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
+		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
+
 
 		// Log SharedPreferences data for debugging
 		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
@@ -509,8 +522,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		}
 
 		// ✅ Copy to Clipboard
-		android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-		android.content.ClipData clip = android.content.ClipData.newPlainText("Product Data", copiedText.toString());
+		ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+		ClipData clip = ClipData.newPlainText("Product Data", copiedText.toString());
 		clipboard.setPrimaryClip(clip);
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();

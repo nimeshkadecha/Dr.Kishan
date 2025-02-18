@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -19,6 +21,7 @@ import com.nimeshkadecha.drkishan.R;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,6 +43,13 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		userName = getIntent().getStringExtra("userName");
 
 		Log.d("ENimesh", "Received Product: " + productName);
+
+		// ✅ setting header
+		TextView header = findViewById(R.id.textView_Header);
+		header.setText(MessageFormat.format("FP > {0}", productName));
+		header.setTextSize(20f);
+		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
+		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
 		// Setup RecyclerView
 		recyclerView = findViewById(R.id.stageList);
