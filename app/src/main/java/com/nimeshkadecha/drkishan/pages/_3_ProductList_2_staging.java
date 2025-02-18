@@ -42,7 +42,7 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
 
-		Log.d("ENimesh", "Received Product: " + productName);
+		Log.d("ENimesh","_3_ProductList_2_staging");
 
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
@@ -67,6 +67,9 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 	/** ✅ Load Stages from SharedPreferences */
 	private void loadStagesFromPrefs() {
 		String jsonString = getJsonFromPrefs();
+
+		Log.d("ENimesh","Data from SharedPreferences" + jsonString);
+
 		if (jsonString.isEmpty()) {
 			Log.d("SharedPrefs", "No saved data found.");
 			return;
@@ -127,6 +130,8 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 	private void addStageToPrefs(String stageName) {
 		String jsonString = getJsonFromPrefs();
 		JSONObject json;
+
+		Log.d("ENimesh","Adding Data to SharedPreferences" + jsonString);
 
 		try {
 			json = jsonString.isEmpty() ? new JSONObject() : new JSONObject(jsonString);

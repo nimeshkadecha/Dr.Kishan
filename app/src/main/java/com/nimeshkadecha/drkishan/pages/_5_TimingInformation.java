@@ -47,6 +47,8 @@ public class _5_TimingInformation extends AppCompatActivity {
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_5_timing_info);
 
+		Log.d("ENimesh","_5_TimingInformation");
+
 		// Get values from Intent
 		userName = getIntent().getStringExtra("userName");
 		productName = getIntent().getStringExtra("productName");
@@ -85,42 +87,42 @@ public class _5_TimingInformation extends AppCompatActivity {
 		loadDataFromSharedPreferences();
 
 		// Fetch data from Firebase (if needed)
-		reference.addValueEventListener(new ValueEventListener() {
-			@Override
-			public void onDataChange(@NonNull DataSnapshot snapshot) {
-				if (snapshot.exists()) {
-					// Fetch interval (days)
-					if (snapshot.child("interval").exists()) {
-						String intervalValue = snapshot.child("interval").getValue().toString();
-						days.setText(intervalValue != null ? intervalValue : "");
-					}
-
-					// Fetch date
-					if (snapshot.child("date").exists()) {
-						String dateValue = snapshot.child("date").getValue().toString();
-						date.setText(dateValue != null ? dateValue : getCurrentDate());
-					}
-
-					// Fetch amount
-					if (snapshot.child("amount").exists()) {
-						String amountValue = snapshot.child("amount").getValue().toString();
-						amount.setText(amountValue != null ? amountValue : "");
-					}
-
-					// Fetch Counting Unit (Spinner)
-					if (snapshot.child("countingValue").exists()) {
-						String unit = snapshot.child("countingValue").getValue().toString();
-						int spinnerPosition = adapter.getPosition(unit);
-						spinner.setSelection(spinnerPosition);
-					}
-				}
-			}
-
-			@Override
-			public void onCancelled(@NonNull DatabaseError error) {
-				Log.e("Firebase", "Error fetching data", error.toException());
-			}
-		});
+//		reference.addValueEventListener(new ValueEventListener() {
+//			@Override
+//			public void onDataChange(@NonNull DataSnapshot snapshot) {
+//				if (snapshot.exists()) {
+//					// Fetch interval (days)
+//					if (snapshot.child("interval").exists()) {
+//						String intervalValue = snapshot.child("interval").getValue().toString();
+//						days.setText(intervalValue != null ? intervalValue : "");
+//					}
+//
+//					// Fetch date
+//					if (snapshot.child("date").exists()) {
+//						String dateValue = snapshot.child("date").getValue().toString();
+//						date.setText(dateValue != null ? dateValue : getCurrentDate());
+//					}
+//
+//					// Fetch amount
+//					if (snapshot.child("amount").exists()) {
+//						String amountValue = snapshot.child("amount").getValue().toString();
+//						amount.setText(amountValue != null ? amountValue : "");
+//					}
+//
+//					// Fetch Counting Unit (Spinner)
+//					if (snapshot.child("countingValue").exists()) {
+//						String unit = snapshot.child("countingValue").getValue().toString();
+//						int spinnerPosition = adapter.getPosition(unit);
+//						spinner.setSelection(spinnerPosition);
+//					}
+//				}
+//			}
+//
+//			@Override
+//			public void onCancelled(@NonNull DatabaseError error) {
+//				Log.e("Firebase", "Error fetching data", error.toException());
+//			}
+//		});
 
 		// Date Picker
 		date.setOnClickListener(v -> show_date_time_picker());
@@ -143,10 +145,18 @@ public class _5_TimingInformation extends AppCompatActivity {
 					JSONObject subStageObj = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
 
 					// ✅ Prefill Days (interval)
-					days.setText(subStageObj.optString("interval", ""));
+					if(subStageObj.has("interval")){
+						Object intervalObj = subStageObj.get("interval");
+						String intervalValue = (intervalObj instanceof JSONObject) ? ((JSONObject) intervalObj).optString("value", "") : intervalObj.toString();
+						days.setText(intervalValue);
+					}
 
+					if (subStageObj.has("date")){
+						Object dateObj = subStageObj.get("date");
+						String dateValue = (dateObj instanceof JSONObject) ? ((JSONObject) dateObj).optString("value", "") : dateObj.toString();
+						date.setText(dateValue);
+					}
 					// ✅ Prefill Date (Use current date if not found)
-					date.setText(subStageObj.optString("date", getCurrentDate()));
 
 					// ✅ Extract "count" correctly from JSON and set in Amount field
 					if (subStageObj.has("count")) {

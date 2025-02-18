@@ -56,6 +56,8 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_2_product_list_1_main);
 
+		Log.d("ENimesh","_2_ProductList_1_main");
+
 		userName = getIntent().getStringExtra("name");
 		sharedPreferences = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 
@@ -75,6 +77,8 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 	/** ✅ Load Products from SharedPreferences */
 	private void loadProductsFromPrefs() {
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
+
+		Log.d("ENimesh","Data from SharedPreferences" + jsonString);
 
 		try {
 			JSONObject json = new JSONObject(jsonString);
@@ -133,6 +137,8 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		}
 
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
+
+		Log.d("ENimesh","Adding Data to SharedPreferences" + jsonString);
 
 		try {
 			JSONObject json = new JSONObject(jsonString);

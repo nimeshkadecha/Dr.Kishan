@@ -61,6 +61,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_6_show_all_messages);
 
+		Log.d("ENimesh","_6_ShowAllMessages");
+
 		// Get Intent Data
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
@@ -77,12 +79,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		header.setTextSize(20f);
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
-
-
-		// Log SharedPreferences data for debugging
-		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
-		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
-		Log.d("SharedPreferences", "Raw JSON Data: " + savedJson);
 
 		recyclerView = findViewById(R.id.ProductListWithInfo);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -117,7 +113,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 
-		Log.d("SharedPreferences", "Raw JSON Data Before Update: " + savedJson);
+		Log.d("ENimesh","Data from SharedPreferences" + savedJson);
 
 		try {
 			JSONObject jsonObject = new JSONObject(savedJson);
@@ -142,7 +138,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			// ✅ Save updated JSON back to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
-			Log.d("SharedPreferences", "Updated JSON Data: " + jsonObject.toString());
+			Log.d("ENimesh", "Updated JSON Data: " + jsonObject.toString());
 
 			// ✅ Ensure RecyclerView gets updated values
 			if (storedData.has("data")) {
@@ -163,6 +159,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 					newProductMessages.add(obj.getString("m"));
 					newProductQuantities.add(obj.getDouble("q"));
 					newProductUnits.add(obj.getString("qt"));
+					newProductUnits.add(obj.getString("k"));
 					newProductDates.add(sdf.format(calendar.getTime()));
 					calendar.add(Calendar.DAY_OF_MONTH, interval);
 				}
@@ -192,6 +189,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 	private void showAddProductDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Add Message");
+
+
 
 		// Inflate custom layout
 		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_detail_messages, null);
@@ -409,6 +408,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		try {
 			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
+
+			Log.d("ENimesh","Add Data to SharedPreferences" + savedJson);
+
 			JSONObject jsonObject = new JSONObject(savedJson);
 
 			// ✅ Ensure correct structure exists in SharedPreferences
@@ -528,8 +530,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
 	}
-
-
 
 	private String formatQuantityWithFullUnit(double quantity, String unit) {
 		double convertedQuantity = quantity;

@@ -34,7 +34,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	private Context context;
 	private double amount;
 	private String amountUnit;
-	private String sharedPrefsKey = "DrKishanData"; // SharedPreferences Key
+	private String sharedPrefsKey = "DrKishanPrefs"; // SharedPreferences Key
 
 	private String userName, productName, stage, subStage;
 

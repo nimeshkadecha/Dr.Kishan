@@ -102,7 +102,7 @@ public class _1_LoginPage extends AppCompatActivity {
 						// ✅ Convert Firebase snapshot to JSON & save
 						JSONObject json = FirebaseJsonConverter.convertDataSnapshotToJson(snapshot);
 						saveUserLogin(name, json.toString());
-
+						Log.d("ENimesh","Firebase User data = " + json.toString());
 						// ✅ Redirect to Products page
 						navigateToProducts(name);
 					} else {

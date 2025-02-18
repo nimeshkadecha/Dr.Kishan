@@ -40,6 +40,8 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_4_product_list_3_sub_stage);
 
+		Log.d("ENimesh","_4_ProductList_3_subStage");
+
 		// ✅ Get Data from Intent
 		userName = getIntent().getStringExtra("userName");
 		productName = getIntent().getStringExtra("productName");
@@ -71,6 +73,8 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 		String savedJson = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
 										.getString("savedJson", "");
+
+		Log.d("ENimesh","Data from SharedPreferences" + savedJson);
 
 		try {
 			JSONObject jsonObject = new JSONObject(savedJson);
@@ -141,6 +145,8 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 			jsonObject.put(userName, userObj);
 
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+
+			Log.d("ENimesh","Adding Data to SharedPreferences" + jsonObject.toString());
 
 			subStageList.add(subStageName);
 			adapter.notifyDataSetChanged();
