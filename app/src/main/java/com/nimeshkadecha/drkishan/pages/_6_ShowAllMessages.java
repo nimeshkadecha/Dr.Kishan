@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.pages;
 
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
@@ -19,6 +19,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.nimeshkadecha.drkishan.Helper.ProductDataAdapter;
+import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -35,7 +37,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-public class allinfo extends AppCompatActivity {
+public class _6_ShowAllMessages extends AppCompatActivity {
 
 	private RecyclerView recyclerView;
 	private ProductDataAdapter adapter;
@@ -52,7 +54,7 @@ public class allinfo extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_all_info);
+		setContentView(R.layout.activity_6_show_all_messages);
 
 		// Get Intent Data
 		productName = getIntent().getStringExtra("productName");
@@ -65,7 +67,7 @@ public class allinfo extends AppCompatActivity {
 		interval = Integer.parseInt(Objects.requireNonNull(getIntent().getStringExtra("days")));
 
 		// Log SharedPreferences data for debugging
-		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 		Log.d("SharedPreferences", "Raw JSON Data: " + savedJson);
 
@@ -99,7 +101,7 @@ public class allinfo extends AppCompatActivity {
 
 	// ✅ Load Data from SharedPreferences and Ensure It's Updated with Intent Values
 	private void loadDataFromSharedPreferences() {
-		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 
 		Log.d("SharedPreferences", "Raw JSON Data Before Update: " + savedJson);
@@ -179,7 +181,7 @@ public class allinfo extends AppCompatActivity {
 		builder.setTitle("Add Message");
 
 		// Inflate custom layout
-		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_product_data, null);
+		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_detail_messages, null);
 		EditText etProductMessage = view.findViewById(R.id.etProductMessage);
 		EditText etProductQuantity = view.findViewById(R.id.etProductQuantity);
 		Spinner unitSpinner = view.findViewById(R.id.unitSpinner); // ✅ Add Unit Spinner
@@ -267,11 +269,11 @@ public class allinfo extends AppCompatActivity {
 	}
 
 	private void saveText(String key, String value) {
-		getSharedPreferences("DrKishan", MODE_PRIVATE).edit().putString(key, value).apply();
+		getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).edit().putString(key, value).apply();
 	}
 
 	private String getSavedText(String key) {
-		return getSharedPreferences("DrKishan", MODE_PRIVATE).getString(key, ""); // Default: empty string
+		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).getString(key, ""); // Default: empty string
 	}
 
 	private void uploadDataToFirebase() {
@@ -279,7 +281,7 @@ public class allinfo extends AppCompatActivity {
 
 		try {
 			// ✅ Fetch stored JSON from SharedPreferences
-			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 			JSONObject jsonObject = new JSONObject(savedJson);
 
@@ -359,7 +361,7 @@ public class allinfo extends AppCompatActivity {
 											.child(subStage)
 											.setValue(firebaseData)
 											.addOnSuccessListener(aVoid ->
-																			                      Toast.makeText(allinfo.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show()
+																			                      Toast.makeText(_6_ShowAllMessages.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show()
 											                     )
 											.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
 
@@ -392,7 +394,7 @@ public class allinfo extends AppCompatActivity {
 	// ✅ Add Data Locally in the correct format
 	private void addDataLocally(String newMessage, Double quantity, String unit) {
 		try {
-			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
 			JSONObject jsonObject = new JSONObject(savedJson);
 

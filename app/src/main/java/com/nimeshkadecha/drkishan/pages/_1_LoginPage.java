@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.pages;
 
 import android.content.Context;
 import android.content.Intent;
@@ -20,11 +20,12 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.nimeshkadecha.drkishan.Helper.FirebaseJsonConverter;
+import com.nimeshkadecha.drkishan.R;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-public class MainActivity extends AppCompatActivity {
+public class _1_LoginPage extends AppCompatActivity {
 
 	private DatabaseReference reference;
 	private SharedPreferences sharedPreferences;
@@ -34,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_main);
+		setContentView(R.layout.activity_1_login);
 
 		Button login = findViewById(R.id.loginBtn);
 		reference = FirebaseDatabase.getInstance().getReference("");
@@ -77,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	private void navigateToProducts(String username) {
-		Intent intent = new Intent(MainActivity.this, products.class);
+		Intent intent = new Intent(_1_LoginPage.this, _2_ProductList_1_main.class);
 		intent.putExtra("name", username);
 		startActivity(intent);
 		finish();
@@ -118,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 	}
-
 
 	private boolean isInternetAvailable() {
 		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);

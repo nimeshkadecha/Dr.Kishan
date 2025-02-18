@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.Helper;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -16,6 +16,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -58,7 +60,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	@NonNull
 	@Override
 	public ProductViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-		View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.product_details, parent, false);
+		View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.detail_message_list, parent, false);
 		return new ProductViewHolder(view);
 	}
 
@@ -177,7 +179,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		builder.setTitle("Edit Message");
 
 		// Inflate custom layout
-		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_product_data, null);
+		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_detail_messages, null);
 		EditText etProductDate = view.findViewById(R.id.etProductDate);
 		EditText etMessage = view.findViewById(R.id.etProductMessage);
 		EditText etQuantity = view.findViewById(R.id.etProductQuantity);
@@ -243,7 +245,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	// ✅ Update Message in SharedPreferences
 	private void updateMessageInStorage(int position, String updatedMessage, double updatedQuantity, String updatedUnit, String updatedDate) {
 		try {
-			SharedPreferences prefs = context.getSharedPreferences("DrKishan", Context.MODE_PRIVATE);
+			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", Context.MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}");
 			JSONObject jsonObject = new JSONObject(savedJson);
 
@@ -296,7 +298,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	// ✅ Delete Message from SharedPreferences (No Changes)
 	private void deleteMessageFromStorage(int position) {
 		try {
-			SharedPreferences prefs = context.getSharedPreferences("DrKishan", Context.MODE_PRIVATE);
+			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", Context.MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}");
 			JSONObject jsonObject = new JSONObject(savedJson);
 

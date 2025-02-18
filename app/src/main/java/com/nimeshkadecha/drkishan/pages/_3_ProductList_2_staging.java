@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.pages;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -8,11 +8,13 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.nimeshkadecha.drkishan.Helper.ProductAdapter;
+import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class selectStage extends AppCompatActivity {
+public class _3_ProductList_2_staging extends AppCompatActivity {
 
 	private RecyclerView recyclerView;
 	private ProductAdapter adapter;
@@ -32,7 +34,7 @@ public class selectStage extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_select_stage);
+		setContentView(R.layout.activity_3_product_list_2_staging);
 
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
@@ -42,7 +44,7 @@ public class selectStage extends AppCompatActivity {
 		// Setup RecyclerView
 		recyclerView = findViewById(R.id.stageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(selectStage.this,stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
+		adapter = new ProductAdapter(_3_ProductList_2_staging.this, stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
 
 		recyclerView.setAdapter(adapter);
 
@@ -91,7 +93,7 @@ public class selectStage extends AppCompatActivity {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Enter Stage Name");
 
-		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_product, null);
+		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_list, null);
 		EditText etStageName = customView.findViewById(R.id.etProductName);
 		builder.setView(customView);
 
@@ -144,14 +146,14 @@ public class selectStage extends AppCompatActivity {
 	}
 
 	private void saveJsonToPrefs(String json) {
-		getSharedPreferences("DrKishan", MODE_PRIVATE)
+		getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
 										.edit()
 										.putString("savedJson", json)
 										.apply();
 	}
 
 	private String getJsonFromPrefs() {
-		return getSharedPreferences("DrKishan", MODE_PRIVATE)
+		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
 										.getString("savedJson", ""); // Default: empty string
 	}
 }

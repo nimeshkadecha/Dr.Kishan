@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.pages;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -10,11 +10,13 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.nimeshkadecha.drkishan.Helper.ProductAdapter;
+import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONObject;
 
@@ -22,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class selectSubStage extends AppCompatActivity {
+public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 	private String userName, productName, stage;
 	private List<String> subStageList = new ArrayList<>();
@@ -33,7 +35,7 @@ public class selectSubStage extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_select_sub_stage);
+		setContentView(R.layout.activity_4_product_list_3_sub_stage);
 
 		// ✅ Get Data from Intent
 		userName = getIntent().getStringExtra("userName");
@@ -43,7 +45,7 @@ public class selectSubStage extends AppCompatActivity {
 		// ✅ Setup RecyclerView
 		recyclerView = findViewById(R.id.subStageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(selectSubStage.this,subStageList, userName, productName, stage, ProductAdapter.AdapterType.SUB_STAGES);
+		adapter = new ProductAdapter(_4_ProductList_3_subStage.this, subStageList, userName, productName, stage, ProductAdapter.AdapterType.SUB_STAGES);
 		recyclerView.setAdapter(adapter);
 
 		// ✅ Load Sub-Stages from SharedPreferences
@@ -57,7 +59,7 @@ public class selectSubStage extends AppCompatActivity {
 	private void loadSubStagesFromPrefs() {
 		subStageList.clear();
 
-		String savedJson = getSharedPreferences("DrKishan", MODE_PRIVATE)
+		String savedJson = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
 										.getString("savedJson", "");
 
 		try {
@@ -87,7 +89,7 @@ public class selectSubStage extends AppCompatActivity {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Enter Sub-Stage Name");
 
-		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_product, null);
+		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_list, null);
 		EditText etSubStageName = customView.findViewById(R.id.etProductName);
 		builder.setView(customView);
 
@@ -109,7 +111,7 @@ public class selectSubStage extends AppCompatActivity {
 
 	private void addSubStageToPrefs(String subStageName) {
 		try {
-			SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "");
 
 			JSONObject jsonObject = new JSONObject(savedJson);

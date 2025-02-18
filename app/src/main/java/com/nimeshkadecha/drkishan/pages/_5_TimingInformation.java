@@ -1,6 +1,5 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.pages;
 
-import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -9,10 +8,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
-import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -24,6 +21,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,9 +30,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Objects;
 
-public class basicInfo extends AppCompatActivity {
+public class _5_TimingInformation extends AppCompatActivity {
 
 	private DatabaseReference reference;
 	private EditText date, days, amount;
@@ -45,7 +42,7 @@ public class basicInfo extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_basic_info);
+		setContentView(R.layout.activity_5_timing_info);
 
 		// Get values from Intent
 		userName = getIntent().getStringExtra("userName");
@@ -125,7 +122,7 @@ public class basicInfo extends AppCompatActivity {
 
 	// ✅ Load data from SharedPreferences
 	private void loadDataFromSharedPreferences() {
-		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
 
 		try {
@@ -185,7 +182,7 @@ public class basicInfo extends AppCompatActivity {
 			return;
 		}
 
-		SharedPreferences prefs = getSharedPreferences("DrKishan", MODE_PRIVATE);
+		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		SharedPreferences.Editor editor = prefs.edit();
 
 		int countValue = 0; // Default count
@@ -207,7 +204,7 @@ public class basicInfo extends AppCompatActivity {
 		editor.putInt("count", countValue); // ✅ Store count
 		editor.apply();
 
-		Intent gotoFinalStep = new Intent(this, allinfo.class);
+		Intent gotoFinalStep = new Intent(this, _6_ShowAllMessages.class);
 		gotoFinalStep.putExtra("productName", productName);
 		gotoFinalStep.putExtra("userName", userName);
 		gotoFinalStep.putExtra("stage", stage);
@@ -232,7 +229,7 @@ public class basicInfo extends AppCompatActivity {
 		int month = calendar.get(Calendar.MONTH);
 		int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-		DatePickerDialog datePickerDialog = new DatePickerDialog(basicInfo.this, (view, year1, month1, dayOfMonth) -> {
+		DatePickerDialog datePickerDialog = new DatePickerDialog(_5_TimingInformation.this, (view, year1, month1, dayOfMonth) -> {
 			date.setText(dayOfMonth + "/" + (month1 + 1) + "/" + year1);
 		}, year, month, day);
 		datePickerDialog.show();

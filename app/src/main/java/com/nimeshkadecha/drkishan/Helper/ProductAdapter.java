@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.Helper;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -17,6 +17,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.nimeshkadecha.drkishan.pages._3_ProductList_2_staging;
+import com.nimeshkadecha.drkishan.pages._4_ProductList_3_subStage;
+import com.nimeshkadecha.drkishan.R;
+import com.nimeshkadecha.drkishan.pages._5_TimingInformation;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,7 +34,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	private AdapterType adapterType;
 	private Context context;
 
-	private static final String PREFS_NAME = "DrKishan"; // 🔹 SharedPreferences Key
+	private static final String PREFS_NAME = "DrKishanPrefs"; // 🔹 SharedPreferences Key
 
 	public enum AdapterType {
 		PRODUCTS, STAGES, SUB_STAGES
@@ -66,7 +70,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	@NonNull
 	@Override
 	public ProductViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-		View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.product_item, parent, false);
+		View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item, parent, false);
 		return new ProductViewHolder(view);
 	}
 
@@ -77,16 +81,16 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		holder.txtItem.setOnClickListener(v -> {
 			Intent intent;
 			if (adapterType == AdapterType.PRODUCTS) {
-				intent = new Intent(v.getContext(), selectStage.class);
+				intent = new Intent(v.getContext(), _3_ProductList_2_staging.class);
 				intent.putExtra("productName", itemList.get(position));
 				intent.putExtra("userName", userName);
 			} else if (adapterType == AdapterType.STAGES) {
-				intent = new Intent(v.getContext(), selectSubStage.class);
+				intent = new Intent(v.getContext(), _4_ProductList_3_subStage.class);
 				intent.putExtra("productName", productName);
 				intent.putExtra("stage", itemList.get(position));
 				intent.putExtra("userName", userName);
 			} else {
-				intent = new Intent(v.getContext(), basicInfo.class);
+				intent = new Intent(v.getContext(), _5_TimingInformation.class);
 				intent.putExtra("productName", productName);
 				intent.putExtra("stage", stage);
 				intent.putExtra("subStage", itemList.get(position));
@@ -121,7 +125,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	private void deleteItemFromStorage(Context context, int position, String itemToDelete) {
 		try {
 			// ✅ Fetch SharedPreferences
-			SharedPreferences prefs = context.getSharedPreferences("DrKishan", Context.MODE_PRIVATE);
+			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", Context.MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
 			JSONObject jsonObject = new JSONObject(savedJson);
 
@@ -184,7 +188,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		builder.setTitle("Edit/Delete Item");
 
 		// ✅ Inflate existing dialog layout
-		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_product, null);
+		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_to_list, null);
 		EditText etProductName = view.findViewById(R.id.etProductName);
 		etProductName.setText(currentName); // ✅ Pre-fill existing name
 

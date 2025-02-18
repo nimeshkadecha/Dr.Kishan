@@ -8,12 +8,12 @@
     android:layout_height="match_parent"
     android:background="?attr/android:colorBackground"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    tools:context=".pages._1_LoginPage">
 
     <!-- Toolbar -->
     <include
         android:id="@+id/include4"
-        layout="@layout/toolbar"
+        layout="@layout/header"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

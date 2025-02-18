@@ -3,35 +3,37 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".products">
+    tools:context=".pages._6_ShowAllMessages">
 
     <include
         android:id="@+id/include4"
-        layout="@layout/toolbar"
+        layout="@layout/header"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- RecyclerView inside NestedScrollView to allow scrolling when content is large -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
+
         app:layout_constraintBottom_toTopOf="@+id/buttonLayout"
         app:layout_constraintTop_toBottomOf="@+id/include4">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/productsList"
+            android:id="@+id/ProductListWithInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:overScrollMode="never" />
     </androidx.core.widget.NestedScrollView>
 
+    <!-- Buttons Layout Fixed at Bottom -->
     <LinearLayout
         android:id="@+id/buttonLayout"
         android:layout_width="match_parent"
@@ -43,18 +45,28 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <Button
-            android:id="@+id/button2_logOut"
+            android:id="@+id/button2_copy"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:text="Log out" />
+            android:text="Copy" />
 
         <Button
-            android:id="@+id/btnAddProduct"
+            android:id="@+id/button_Upload"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Add +" />
+
+            android:text="Save" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:text="Add" />
     </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

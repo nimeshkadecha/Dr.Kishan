@@ -1,4 +1,4 @@
-package com.nimeshkadecha.drkishan;
+package com.nimeshkadecha.drkishan.pages;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -19,6 +19,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.nimeshkadecha.drkishan.Helper.ProductAdapter;
+import com.nimeshkadecha.drkishan.R;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -26,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class products extends AppCompatActivity {
+public class _2_ProductList_1_main extends AppCompatActivity {
 
 	android.app.AlertDialog.Builder alert;
 
@@ -41,7 +44,6 @@ public class products extends AppCompatActivity {
 		return false;
 	}
 
-
 	private RecyclerView recyclerView;
 	private ProductAdapter adapter;
 	private List<String> productList = new ArrayList<>();
@@ -52,7 +54,7 @@ public class products extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_products);
+		setContentView(R.layout.activity_2_product_list_1_main);
 
 		userName = getIntent().getStringExtra("name");
 		sharedPreferences = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
@@ -60,7 +62,7 @@ public class products extends AppCompatActivity {
 		// ✅ Setup RecyclerView
 		recyclerView = findViewById(R.id.productsList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(products.this, productList, userName, ProductAdapter.AdapterType.PRODUCTS);
+		adapter = new ProductAdapter(_2_ProductList_1_main.this, productList, userName, ProductAdapter.AdapterType.PRODUCTS);
 		recyclerView.setAdapter(adapter);
 
 		// ✅ Load data from SharedPreferences
@@ -102,7 +104,7 @@ public class products extends AppCompatActivity {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Enter Product Name");
 
-		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_product, null);
+		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_list, null);
 		EditText etProductName = customView.findViewById(R.id.etProductName);
 		builder.setView(customView);
 
@@ -156,7 +158,7 @@ public class products extends AppCompatActivity {
 	/** ✅ Logout User */
 	private void logoutUser() {
 		sharedPreferences.edit().clear().apply();
-		startActivity(new Intent(this, MainActivity.class));
+		startActivity(new Intent(this, _1_LoginPage.class));
 		finish();
 	}
 
@@ -175,7 +177,7 @@ public class products extends AppCompatActivity {
 	@Override
 	public void onBackPressed() {
 
-			alert = new android.app.AlertDialog.Builder(products.this);
+			alert = new android.app.AlertDialog.Builder(_2_ProductList_1_main.this);
 			alert.setTitle("Confirmation");
 			alert.setMessage("Are you sure you want to exit?");
 			alert.setPositiveButton("Exit", (dialogInterface, i) -> finishAffinity());

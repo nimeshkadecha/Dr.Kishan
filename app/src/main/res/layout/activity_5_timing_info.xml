@@ -6,11 +6,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".basicInfo">
+    tools:context=".pages._5_TimingInformation">
 
     <include
         android:id="@+id/include4"
-        layout="@layout/toolbar"
+        layout="@layout/header"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"

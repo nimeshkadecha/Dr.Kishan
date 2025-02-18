@@ -15,22 +15,22 @@
         android:theme="@style/Theme.DrKishan"
         tools:targetApi="31">
         <activity
-            android:name=".selectSubStage"
+            android:name=".pages._4_ProductList_3_subStage"
             android:exported="false" />
         <activity
-            android:name=".allinfo"
+            android:name=".pages._6_ShowAllMessages"
             android:exported="false" />
         <activity
-            android:name=".basicInfo"
+            android:name=".pages._5_TimingInformation"
             android:exported="false" />
         <activity
-            android:name=".selectStage"
+            android:name=".pages._3_ProductList_2_staging"
             android:exported="false" />
         <activity
-            android:name=".products"
+            android:name=".pages._2_ProductList_1_main"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".pages._1_LoginPage"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
