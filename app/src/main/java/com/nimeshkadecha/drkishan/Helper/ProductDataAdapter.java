@@ -103,8 +103,22 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	}
 
 	public void updateList(HashMap<Integer, ArrayList<String>> newMessageMap) {
-		this.sortedKeys = new ArrayList<>(newMessageMap.keySet());
+		// Create a new HashMap to store unique messages
+		HashMap<Integer, ArrayList<String>> uniqueMessageMap = new HashMap<>();
+
+		for (Map.Entry<Integer, ArrayList<String>> entry : newMessageMap.entrySet()) {
+			HashSet<String> uniqueMessages = new HashSet<>(entry.getValue()); // Remove duplicates
+			uniqueMessageMap.put(entry.getKey(), new ArrayList<>(uniqueMessages)); // Convert back to ArrayList
+		}
+
+		// Update sortedKeys with unique keys
+		this.sortedKeys = new ArrayList<>(uniqueMessageMap.keySet());
 		Collections.sort(this.sortedKeys);
+
+		// Update the adapter’s dataset (if necessary)
+		newMessageMap.clear();
+		newMessageMap.putAll(uniqueMessageMap);
+
 		notifyDataSetChanged();
 	}
 

@@ -544,10 +544,10 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
 
-			Log.d("ENimesh", "Add Data to SharedPreferences" + savedJson);
+			Log.d("ENimesh", "Before adding Data to SharedPreferences: " + savedJson);
 			JSONObject jsonObject = new JSONObject(savedJson);
 
-			// ✅ Ensure correct structure exists in SharedPreferences
+			// Ensure correct structure exists in SharedPreferences
 			if (!jsonObject.has(userName)) jsonObject.put(userName, new JSONObject());
 			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
@@ -557,36 +557,47 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (!productObj.has(stage)) productObj.put(stage, new JSONObject());
 			JSONObject stageObj = productObj.getJSONObject(stage);
 
-			JSONObject subStageObj = null;
-			if (!stageObj.has(subStage)) subStageObj.put(subStage, new JSONObject());
-			subStageObj = stageObj.getJSONObject(subStage);
+			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
+			JSONObject subStageObj = stageObj.getJSONObject(subStage);
 
-			// ✅ Retrieve or create messages array from `messagesMap`
-			JSONArray messagesArray = new JSONArray();
+			// Retrieve existing data array if present
+			JSONArray existingDataArray = new JSONArray();
+			if (subStageObj.has("data")) {
+				existingDataArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
+			}
 
+			// Create new messages array from `messagesMap`
+			JSONArray newMessageArray = new JSONArray();
 			if (messagesMap.containsKey(key)) {
 				for (String message : Objects.requireNonNull(messagesMap.get(key))) {
 					JSONObject messageObj = new JSONObject(); // Create JSON object
 					String[] parts = message.split(" - ");
 					messageObj.put("m", parts[0]); // Extract message
-					messageObj.put("q", parts[1]); // Extract quantity + unit
+					messageObj.put("q", parts[1].replaceAll("[^\\d]", "")); // Extract quantity
 					messageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit only
 					messageObj.put("k", key); // Store 'k'
-					messagesArray.put(messageObj);
+					newMessageArray.put(messageObj);
 				}
 			}
 
-			// ✅ Store updated messages in correct format
+			// Append new messages to existing ones
+			for (int i = 0; i < newMessageArray.length(); i++) {
+				existingDataArray.put(newMessageArray.getJSONObject(i));
+			}
+
+			// Store updated messages in correct format
 			JSONObject formattedData = new JSONObject();
-			formattedData.put("value", messagesArray.toString());
+			formattedData.put("value", existingDataArray.toString());
 			subStageObj.put("data", formattedData);
 
-			// ✅ Save updated JSON to SharedPreferences
+			// Save updated JSON to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
-			storedData = subStageObj; // ✅ Ensure `storedData` is updated
+			storedData = subStageObj; // Ensure `storedData` is updated
 
 			Toast.makeText(this, "Data Added Locally!", Toast.LENGTH_SHORT).show();
 
+			savedJson = prefs.getString("savedJson", "{}"); // Retrieve updated JSON
+			Log.d("ENimesh", "After adding Data to SharedPreferences: " + savedJson);
 		} catch (JSONException e) {
 			Log.e("SharedPreferences", "Error updating JSON", e);
 			Toast.makeText(this, "Failed to add data!", Toast.LENGTH_SHORT).show();
