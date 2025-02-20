@@ -52,10 +52,33 @@
         android:id="@+id/unitSpinner"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
         android:padding="10dp"
+        app:layout_constraintBottom_toBottomOf="@+id/etProductQuantity"
         app:layout_constraintEnd_toEndOf="@+id/etProductMessage"
-        app:layout_constraintTop_toBottomOf="@+id/etProductMessage" />
+        app:layout_constraintStart_toEndOf="@+id/etProductQuantity"
+        app:layout_constraintTop_toTopOf="@+id/etProductQuantity" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewMessages"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:scrollbars="vertical"
+        android:layout_marginTop="10dp"
+        app:layout_constraintEnd_toEndOf="@+id/unitSpinner"
+        app:layout_constraintStart_toStartOf="@+id/etProductQuantity"
+        app:layout_constraintTop_toBottomOf="@+id/etProductQuantity" />
+
+    <Button
+        android:id="@+id/addMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="add"
+        android:layout_marginTop="10dp"
+        app:layout_constraintEnd_toEndOf="@+id/recyclerViewMessages"
+        app:layout_constraintTop_toBottomOf="@+id/recyclerViewMessages" />
+
+
+
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -28,15 +28,15 @@
             android:textStyle="bold"
             android:theme="@style/textView"/>
 
-            <TextView
-                android:id="@+id/quentity"
-                android:gravity="center"
-                android:layout_marginStart="30dp"
-                android:textSize="14sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="14 ml" />
+<!--            <TextView-->
+<!--                android:id="@+id/quentity"-->
+<!--                android:gravity="center"-->
+<!--                android:layout_marginStart="30dp"-->
+<!--                android:textSize="14sp"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="14 ml" />-->
 
         </LinearLayout>
 

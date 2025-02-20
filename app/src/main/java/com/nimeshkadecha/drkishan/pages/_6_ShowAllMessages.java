@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.nimeshkadecha.drkishan.Helper.DialogMessageAdapter;
 import com.nimeshkadecha.drkishan.Helper.ProductDataAdapter;
 import com.nimeshkadecha.drkishan.R;
 
@@ -35,25 +36,40 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 public class _6_ShowAllMessages extends AppCompatActivity {
 
+
 	private RecyclerView recyclerView;
 	private ProductDataAdapter adapter;
-	private List<String> productDates, productMessages;
 	private String productName, stage, subStage, mainDate, userName, unit;
 	private double amount;
+
+	private double calculateAm;
 	private int interval;
+
+	private HashMap<Integer, ArrayList<String>> messagesMap;
+	private JSONObject storedData;
+
+
+//	private RecyclerView recyclerView;
+//	private ProductDataAdapter adapter;
+	private List<String> productDates, productMessages;
+//	private String productName, stage, subStage, mainDate, userName, unit;
+//	private double amount;
+//	private int interval;
 
 	List<Double> productQuantities;
 	List<String> productUnits;
-	private JSONObject storedData; // Holds data from SharedPreferences
+//	private JSONObject storedData; // Holds data from SharedPreferences
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +79,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		Log.d("ENimesh","_6_ShowAllMessages");
 
+
 		// Get Intent Data
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
@@ -71,6 +88,11 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		mainDate = getIntent().getStringExtra("date");
 		amount = Double.parseDouble(getIntent().getStringExtra("amount"));
 		unit = getIntent().getStringExtra("unit");
+		if(unit != null && unit.equalsIgnoreCase("Vigha")){
+			calculateAm = amount;
+		}else{
+			calculateAm = amount * 2.5d;
+		}
 		interval = Integer.parseInt(Objects.requireNonNull(getIntent().getStringExtra("days")));
 
 		// ✅ setting header
@@ -83,13 +105,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		recyclerView = findViewById(R.id.ProductListWithInfo);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-		productDates = new ArrayList<>();
-		productMessages = new ArrayList<>();
-		productQuantities = new ArrayList<>();
-		productUnits = new ArrayList<>();
+		messagesMap = new HashMap<>();
 
-		adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits,
-		                                 amount, unit, userName, productName, stage, subStage);
+		adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval);
 
 		recyclerView.setAdapter(adapter); // ✅ Set adapter after loading data
 
@@ -130,6 +148,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			storedData = stageObj.getJSONObject(subStage);
 
 			// ✅ Update storedData with latest Intent values
+//			NOTE: I guess i should remove it
 			storedData.put("count", amount);
 			storedData.put("countingValue", unit);
 			storedData.put("date", mainDate);
@@ -140,114 +159,210 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 			Log.d("ENimesh", "Updated JSON Data: " + jsonObject.toString());
 
-			// ✅ Ensure RecyclerView gets updated values
 			if (storedData.has("data")) {
 				JSONObject dataObject = storedData.getJSONObject("data");
 				JSONArray messagesArray = new JSONArray(dataObject.getString("value"));
 
-				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-				Calendar calendar = Calendar.getInstance();
-				calendar.setTime(sdf.parse(mainDate));
-
-				List<String> newProductDates = new ArrayList<>();
-				List<String> newProductMessages = new ArrayList<>();
-				List<Double> newProductQuantities = new ArrayList<>();
-				List<String> newProductUnits = new ArrayList<>();
-
 				for (int i = 0; i < messagesArray.length(); i++) {
 					JSONObject obj = messagesArray.getJSONObject(i);
-					newProductMessages.add(obj.getString("m"));
-					newProductQuantities.add(obj.getDouble("q"));
-					newProductUnits.add(obj.getString("qt"));
-					newProductUnits.add(obj.getString("k"));
-					newProductDates.add(sdf.format(calendar.getTime()));
-					calendar.add(Calendar.DAY_OF_MONTH, interval);
+					int k = obj.getInt("k");
+					String message = obj.getString("m");
+					double q = obj.getDouble("q") * calculateAm;
+					String qt = obj.getString("qt");
+
+					String formattedQuantity = formatQuantity(q, qt);
+					String formattedMessage = message + " -- " + formattedQuantity;
+
+
+					messagesMap.computeIfAbsent(k, key -> new ArrayList<>()).add(formattedMessage);
 				}
 
-				// ✅ Update RecyclerView with updated data
+					Log.d("ENimesh","formated s " + messagesMap);
+//				TreeMap<Integer, ArrayList<String>> sortedMessagesMap = new TreeMap<>(messagesMap);
+
 				runOnUiThread(() -> {
 					if (adapter != null) {
-						adapter.updateList(newProductDates, newProductMessages, newProductQuantities, newProductUnits);
-						adapter.notifyDataSetChanged();
+						adapter.updateList(messagesMap);
 					} else {
-						adapter = new ProductDataAdapter(this, productDates, productMessages, productQuantities, productUnits,
-						                                 amount, unit, userName, productName, stage, subStage);
-
+						adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval);
 						recyclerView.setAdapter(adapter);
 					}
+						adapter.notifyDataSetChanged();
 				});
 			}
 
-		} catch (JSONException | ParseException e) {
+		} catch (JSONException e) {
 			Log.e("SharedPreferences", "Error parsing JSON", e);
 		}
 	}
 
-
-	// ✅ Show Dialog to Add Message
-	// ✅ Show Dialog to Add Message with Unit Selection
 	private void showAddProductDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Add Message");
 
-
-
-		// Inflate custom layout
 		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_detail_messages, null);
 		EditText etProductMessage = view.findViewById(R.id.etProductMessage);
 		EditText etProductQuantity = view.findViewById(R.id.etProductQuantity);
-		Spinner unitSpinner = view.findViewById(R.id.unitSpinner); // ✅ Add Unit Spinner
-
-		// ✅ Populate Spinner with unit options
-		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-										this, R.array.unit_options, android.R.layout.simple_spinner_item);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		unitSpinner.setAdapter(adapter);
-
-		// Auto-set next available date
 		EditText etProductDate = view.findViewById(R.id.etProductDate);
+		Spinner unitSpinner = view.findViewById(R.id.unitSpinner);
+		Button addMsg = view.findViewById(R.id.addMsg);
+		RecyclerView recyclerViewMessages = view.findViewById(R.id.recyclerViewMessages);
+
+		ArrayAdapter<CharSequence> arr_adapter = ArrayAdapter.createFromResource(this, R.array.unit_options, android.R.layout.simple_spinner_item);
+		arr_adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		unitSpinner.setAdapter(arr_adapter);
+
+		List<String> dialogList = new ArrayList<>();
+		DialogMessageAdapter dialogAdapter = new DialogMessageAdapter(dialogList);
+		recyclerViewMessages.setAdapter(dialogAdapter);
+		recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
+
 		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 		Calendar calendar = Calendar.getInstance();
+
 		try {
-			if (!productDates.isEmpty()) {
-				calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
-			} else {
-				calendar.setTime(sdf.parse(mainDate));
-			}
-			calendar.add(Calendar.DAY_OF_MONTH, interval);
+			// Use the starting date from intent
+			calendar.setTime(sdf.parse(mainDate));
+
+			// Calculate the next date based on the number of distinct keys in messageMap
+			int numberOfKeys = messagesMap.size(); // Number of distinct 'k'
+			int totalDaysToAdd = numberOfKeys * interval;
+
+			calendar.add(Calendar.DAY_OF_MONTH, totalDaysToAdd);
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
+
 		etProductDate.setText(sdf.format(calendar.getTime()));
 
-		builder.setView(view);
 
-		builder.setPositiveButton("Save", (dialog, which) -> {
+		addMsg.setOnClickListener(v -> {
 			String newMessage = etProductMessage.getText().toString().trim();
 			String selectedUnit = unitSpinner.getSelectedItem().toString();
-			Double newQuantity;
-
-			try {
-				newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim());
-			} catch (NumberFormatException e) {
-				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
-				return;
-			}
 
 			if (newMessage.isEmpty()) {
 				Toast.makeText(this, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
 				return;
 			}
 
-			addDataLocally(newMessage, newQuantity, selectedUnit);
+			String formattedQuantity;
+			try {
+				double newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim()) * calculateAm;
+				Log.d("ENimesh","data = " + calculateAm + " " + newQuantity);
+				formattedQuantity = formatQuantity(newQuantity,selectedUnit);
+			} catch (NumberFormatException e) {
+				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
+				return;
+			}
+
+			// ✅ Correctly add message to `dialogList`
+			String entry = newMessage + " - " + formattedQuantity;
+
+			if (!dialogList.contains(entry)) {
+				dialogList.add(entry);
+				dialogAdapter.notifyDataSetChanged(); // Refresh RecyclerView
+				Log.d("ENimesh", "Added entry: " + entry);
+			} else {
+				Log.d("ENimesh", "Duplicate skipped: " + entry);
+			}
+
+			// ✅ Clear input fields after adding
+			etProductMessage.setText("");
+			etProductQuantity.setText("");
 		});
+
+
+		builder.setView(view);
+		builder.setPositiveButton("Save", (dialog, which) -> {
+			if (dialogList.isEmpty()) {
+				Toast.makeText(this, "No messages to save", Toast.LENGTH_SHORT).show();
+				return;
+			}
+
+			// ✅ Auto-increment "k" correctly
+			int newKey = messagesMap.isEmpty() ? 1 : Collections.max(messagesMap.keySet()) + 1;
+
+			// ✅ Add new messages directly to `messagesMap`
+			Log.d("ENimesh","List = " + dialogList);
+			messagesMap.put(newKey, new ArrayList<>(dialogList));
+
+			// ✅ Update RecyclerView through adapter
+			adapter.addMessagesToMap(newKey, new ArrayList<>(dialogList));
+
+			// ✅ Ensure RecyclerView refreshes
+			adapter.notifyDataSetChanged();
+
+//			Saving locally
+			addDataLocally(newMessage, newQuantity, selectedUnit);
+
+		});
+
 
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 		builder.create().show();
 	}
 
 
-	// ✅ Copy Functionality (No Changes)
+//	// ✅ Show Dialog to Add Message
+//	private void showAddProductDialog() {
+//		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//		builder.setTitle("Add Message");
+//
+//		// Inflate custom layout
+//		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_detail_messages, null);
+//		EditText etProductMessage = view.findViewById(R.id.etProductMessage);
+//		EditText etProductQuantity = view.findViewById(R.id.etProductQuantity);
+//		Spinner unitSpinner = view.findViewById(R.id.unitSpinner); // ✅ Add Unit Spinner
+//
+//		// ✅ Populate Spinner with unit options
+//		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+//										this, R.array.unit_options, android.R.layout.simple_spinner_item);
+//		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//		unitSpinner.setAdapter(adapter);
+//
+//		// Auto-set next available date
+//		EditText etProductDate = view.findViewById(R.id.etProductDate);
+//		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+//		Calendar calendar = Calendar.getInstance();
+//		try {
+//			if (!productDates.isEmpty()) {
+//				calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
+//			} else {
+//				calendar.setTime(sdf.parse(mainDate));
+//			}
+//			calendar.add(Calendar.DAY_OF_MONTH, interval);
+//		} catch (ParseException e) {
+//			e.printStackTrace();
+//		}
+//		etProductDate.setText(sdf.format(calendar.getTime()));
+//
+//		builder.setView(view);
+//
+//		builder.setPositiveButton("Save", (dialog, which) -> {
+//			String newMessage = etProductMessage.getText().toString().trim();
+//			String selectedUnit = unitSpinner.getSelectedItem().toString();
+//			Double newQuantity;
+//
+//			try {
+//				newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim());
+//			} catch (NumberFormatException e) {
+//				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
+//				return;
+//			}
+//
+//			if (newMessage.isEmpty()) {
+//				Toast.makeText(this, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
+//				return;
+//			}
+//
+//			addDataLocally(newMessage, newQuantity, selectedUnit);
+//		});
+//
+//		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+//		builder.create().show();
+//	}
+
+	// ✅ Copy Functionality
 	private void showCopyDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Customize Copy Format");
@@ -431,6 +546,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (subStageObj.has("data")) {
 				try {
 					messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
+
 				} catch (JSONException e) {
 					messagesArray = new JSONArray();
 				}
@@ -443,6 +559,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			newMessageObj.put("m", newMessage);
 			newMessageObj.put("q", quantity);
 			newMessageObj.put("qt", unit);
+//			newMessageObj.put("k", k);
 			messagesArray.put(newMessageObj);
 
 			// ✅ Store updated messages in correct format
@@ -460,7 +577,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			Calendar calendar = Calendar.getInstance();
 			if (!productDates.isEmpty()) {
 				try {
-					calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
+					calendar.setTime(Objects.requireNonNull(sdf.parse(productDates.get(productDates.size() - 1))));
 				} catch (ParseException e) {
 					e.printStackTrace();
 				}
@@ -583,10 +700,57 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		}
 	}
 
+	// ✅ Corrected unit conversion & number formatting
+	private String formatQuantity(double quantity, String unit) {
+		double convertedQuantity = quantity;
+		String finalUnit = unit;
+
+		switch (unit.toLowerCase()) {
+			case "ml":
+			case "milliliter":
+				if (quantity >= 1000) {
+					convertedQuantity = quantity / 1000;
+					finalUnit = "Letter"; // Convert ML to L
+				} else {
+					finalUnit = "ML"; // Keep ML
+				}
+				break;
+
+			case "g":
+			case "gram":
+				if (quantity >= 1000) {
+					convertedQuantity = quantity / 1000;
+					finalUnit = "KG"; // Convert G to KG
+				} else {
+					finalUnit = "grams"; // Keep grams
+				}
+				break;
+
+			case "kg":
+			case "kilogram":
+				finalUnit = "KG"; // Keep KG
+				break;
+
+			case "l":
+			case "litre":
+			case "liter":
+				finalUnit = "Letter"; // Convert L to Letter
+				break;
+
+			default:
+				finalUnit = unit; // Keep the original unit if unrecognized
+		}
+
+		return formatNumber(convertedQuantity) + " " + finalUnit;
+	}
+
+
 	@Override
 	protected void onResume() {
 		super.onResume();
 		loadDataFromSharedPreferences(); // ✅ Ensure RecyclerView is updated when reopening the page
 	}
+
+
 
 }

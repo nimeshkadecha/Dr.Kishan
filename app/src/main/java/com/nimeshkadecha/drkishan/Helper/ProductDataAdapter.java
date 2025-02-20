@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,142 +23,116 @@ import com.nimeshkadecha.drkishan.R;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.MessageFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.ProductViewHolder> {
+
+	private Context context;
+	private HashMap<Integer, ArrayList<String>> messageMap;
+	private List<Integer> sortedKeys;
+
 	private List<String> productMessages;
 	private List<String> productDates;
 	private List<Double> productQuantities;
 	private List<String> productUnits;
-	private Context context;
+//	private Context context;
 	private double amount;
 	private String amountUnit;
 	private String sharedPrefsKey = "DrKishanPrefs"; // SharedPreferences Key
 
+	private Date startDate;
+
+	private int interval;
 	private String userName, productName, stage, subStage;
 
-	public ProductDataAdapter(Context context, List<String> productDates, List<String> productMessages,
-	                          List<Double> productQuantities, List<String> productUnits,
-	                          double amount, String amountUnit,
-	                          String userName, String productName, String stage, String subStage) {
+	public ProductDataAdapter(Context context, HashMap<Integer, ArrayList<String>> messageMap, String startDateStr, int interval) {
 		this.context = context;
-		this.amount = amount;
-		this.amountUnit = amountUnit;
-		this.userName = userName;
-		this.productName = productName;
-		this.stage = stage;
-		this.subStage = subStage;
+		this.messageMap = messageMap;
+		this.sortedKeys = new ArrayList<>(messageMap.keySet());
+		Collections.sort(this.sortedKeys); // Sort keys in ascending order
 
-		this.productDates = (productDates != null) ? productDates : new ArrayList<>();
-		this.productMessages = (productMessages != null) ? productMessages : new ArrayList<>();
-		this.productQuantities = (productQuantities != null) ? productQuantities : new ArrayList<>();
-		this.productUnits = (productUnits != null) ? productUnits : new ArrayList<>();
+		this.interval = interval;
+
+		try {
+			this.startDate = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(startDateStr);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+
+
+//		Log.d("ENimesh","Date = " + startDateStr + " i =" + interval + " Size -" + sortedKeys.size() +  " mes - " + messageMap.toString() );
 	}
-
 
 	@NonNull
 	@Override
 	public ProductViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-		View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.detail_message_list, parent, false);
+		View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_detail_message, parent, false);
 		return new ProductViewHolder(view);
 	}
 
 	@Override
 	public void onBindViewHolder(@NonNull ProductViewHolder holder, int position) {
-		String date = productDates.get(position);
-		String message = productMessages.get(position);
-		double quantity = (position < productQuantities.size()) ? productQuantities.get(position) : 0;
-		String unit = (position < productUnits.size()) ? productUnits.get(position) : "";
 
+		int key = sortedKeys.get(position);
+		ArrayList<String> messages = messageMap.get(key);
 
-		// ✅ Convert Quantity if necessary
-		String formattedQuantity = formatQuantity(quantity, unit);
+		if (messages != null) {
+			String combinedMessage = TextUtils.join("\n", messages);
+			holder.txtMessage.setText(combinedMessage);
+		}
 
-		holder.txtProduct.setText("Date: " + date);
-		holder.txtDetails.setText("Message: " + message);
-		holder.txtQuantity.setText(formattedQuantity); // ✅ Display correct quantity
+		holder.txtDate.setText(getDate(position));
+
 
 		// ✅ Set Click Listener for Editing
 		holder.itemView.setOnClickListener(v -> showEditDialog(position));
 	}
 
-	public void updateList(List<String> newProductDates, List<String> newProductMessages,
-	                       List<Double> newProductQuantities, List<String> newProductUnits) {
-		if (newProductDates == null || newProductMessages == null || newProductQuantities == null || newProductUnits == null) {
-			Log.e("AdapterUpdate", "Received null values");
-			return;
-		}
-
-		Log.d("AdapterUpdate", "Updating adapter with: " + newProductDates.size() + " items");
-
-		productDates.clear();
-		productMessages.clear();
-		productQuantities.clear();
-		productUnits.clear();
-
-		productDates.addAll(newProductDates);
-		productMessages.addAll(newProductMessages);
-
-		// ✅ Convert and store adjusted quantities
-		List<Double> adjustedQuantities = new ArrayList<>();
-		for (Double q : newProductQuantities) {
-			adjustedQuantities.add(q * amount); // ✅ Correct multiplication
-		}
-		productQuantities.addAll(adjustedQuantities);
-		productUnits.addAll(newProductUnits);
-
+	public void updateList(HashMap<Integer, ArrayList<String>> newMessageMap) {
+		this.sortedKeys = new ArrayList<>(newMessageMap.keySet());
+		Collections.sort(this.sortedKeys);
 		notifyDataSetChanged();
+	}
+
+	public void addMessagesToMap(int key, List<String> messages) {
+		if (!messageMap.containsKey(key)) {
+			messageMap.put(key, new ArrayList<>()); // Create key if not exists
+		}
+
+		// ✅ Prevent duplicates using HashSet
+		List<String> existingMessages = messageMap.get(key);
+		Set<String> uniqueMessages = new HashSet<>(existingMessages);
+		uniqueMessages.addAll(messages); // Add only unique values
+
+		// ✅ Convert back to List and update map
+		messageMap.put(key, new ArrayList<>(uniqueMessages));
+
+		// ✅ Refresh sorted keys
+		sortedKeys = new ArrayList<>(messageMap.keySet());
+		Collections.sort(sortedKeys);
+
+		Log.d("ENimesh", "Updated messageMap: " + messageMap);
+
+		notifyDataSetChanged(); // Refresh RecyclerView
 	}
 
 	@Override
 	public int getItemCount() {
-		return productDates.size();
-	}
-
-	// ✅ Corrected unit conversion & number formatting
-	private String formatQuantity(double quantity, String unit) {
-		double convertedQuantity = quantity;
-		String finalUnit = unit;
-
-		switch (unit.toLowerCase()) {
-			case "ml":
-			case "milliliter":
-				if (quantity >= 1000) {
-					convertedQuantity = quantity / 1000;
-					finalUnit = "Letter"; // Convert ML to L
-				} else {
-					finalUnit = "ML"; // Keep ML
-				}
-				break;
-
-			case "g":
-			case "gram":
-				if (quantity >= 1000) {
-					convertedQuantity = quantity / 1000;
-					finalUnit = "KG"; // Convert G to KG
-				} else {
-					finalUnit = "grams"; // Keep grams
-				}
-				break;
-
-			case "kg":
-			case "kilogram":
-				finalUnit = "KG"; // Keep KG
-				break;
-
-			case "l":
-			case "litre":
-			case "liter":
-				finalUnit = "Letter"; // Convert L to Letter
-				break;
-
-			default:
-				finalUnit = unit; // Keep the original unit if unrecognized
-		}
-
-		return formatNumber(convertedQuantity) + " " + finalUnit;
+		return sortedKeys.size();
 	}
 
 	// ✅ Formats numbers with commas
@@ -165,8 +140,6 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		double roundedValue = Math.round(value * 100.0) / 100.0; // ✅ Round to 2 decimal places
 		return String.format(Locale.US, "%.2f", roundedValue); // ✅ Always 2 decimal places
 	}
-
-
 
 	// ✅ Open Dialog to Edit Message
 	private void showEditDialog(int position) {
@@ -240,8 +213,6 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		}
 	}
 
-
-
 	// ✅ Update Message in SharedPreferences
 	private void updateMessageInStorage(int position, String updatedMessage, double updatedQuantity, String updatedUnit, String updatedDate) {
 		try {
@@ -294,7 +265,6 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		}
 	}
 
-
 	// ✅ Delete Message from SharedPreferences (No Changes)
 	private void deleteMessageFromStorage(int position) {
 		try {
@@ -341,17 +311,25 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		}
 	}
 
+	private String getDate(int position){
 
+		// Calculate date dynamically instead of using a separate list
+		SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(startDate);
+		calendar.add(Calendar.DAY_OF_MONTH, position * interval);
+		String date = formatter.format(calendar.getTime());
+
+		return date;
+	}
 
 	public static class ProductViewHolder extends RecyclerView.ViewHolder {
-		TextView txtProduct, txtDetails, txtQuantity;
-
-
+		TextView txtDate, txtMessage;
 		public ProductViewHolder(@NonNull View itemView) {
 			super(itemView);
-			txtProduct = itemView.findViewById(R.id.txtProductName_d); // ✅ Check ID
-			txtDetails = itemView.findViewById(R.id.txtProductDetails); // ✅ Check ID
-			txtQuantity = itemView.findViewById(R.id.quentity); // ✅ Check ID (should be txtQuantity)
+			txtDate = itemView.findViewById(R.id.txtProductName_d); // ✅ Check ID
+			txtMessage = itemView.findViewById(R.id.txtProductDetails); // ✅ Check ID
+//			txtQuantity = itemView.findViewById(R.id.quentity); // ✅ Check ID (should be txtQuantity)
 		}
 	}
 }
