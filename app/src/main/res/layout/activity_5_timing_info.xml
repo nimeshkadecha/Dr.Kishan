@@ -99,4 +99,23 @@
         app:layout_constraintEnd_toEndOf="@+id/textInputLayoutName"
         app:layout_constraintStart_toEndOf="@+id/textInputLayoutAMo"
         app:layout_constraintTop_toTopOf="@+id/textInputLayoutAMo" />
+
+    <Switch
+        android:id="@+id/switch1Drip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Drip"
+        app:layout_constraintBottom_toTopOf="@+id/textInputLayoutName2"
+        app:layout_constraintStart_toStartOf="@+id/textInputLayoutName2"
+        app:layout_constraintTop_toBottomOf="@+id/include4"
+        tools:ignore="UseSwitchCompatOrMaterialXml" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Spray"
+        android:layout_marginStart="3dp"
+        app:layout_constraintBottom_toBottomOf="@+id/switch1Drip"
+        app:layout_constraintStart_toEndOf="@+id/switch1Drip"
+        app:layout_constraintTop_toTopOf="@+id/switch1Drip" />
 </androidx.constraintlayout.widget.ConstraintLayout>

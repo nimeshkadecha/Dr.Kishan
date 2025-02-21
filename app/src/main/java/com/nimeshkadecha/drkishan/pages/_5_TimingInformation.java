@@ -6,11 +6,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -39,6 +42,13 @@ public class _5_TimingInformation extends AppCompatActivity {
 	private DatabaseReference reference;
 	private EditText date, days, amount;
 	private Spinner spinner;
+
+	private static boolean isDrip = false;
+	private Switch drip;
+
+	private String o_days,o_amo;
+	private int o_position;
+
 	private String userName, productName, stage, subStage;
 
 	@Override
@@ -67,11 +77,102 @@ public class _5_TimingInformation extends AppCompatActivity {
 		date = findViewById(R.id.date);
 		amount = findViewById(R.id.editTextText);
 		spinner = findViewById(R.id.spinner);
+		drip = findViewById(R.id.switch1Drip);
+
+//		o_days = "0";
+//		o_position = 0;
+//		o_amo = "0";
+
+
+		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
+		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
+		try {
+			JSONObject jsonObject = new JSONObject(savedJson);
+			if (jsonObject.has(userName)) {
+				JSONObject usersObj = jsonObject.getJSONObject(userName);
+				if (usersObj.has(productName) && usersObj.getJSONObject(productName).has(stage)) {
+					JSONObject subStageObj = usersObj.getJSONObject(productName).getJSONObject(stage).getJSONObject(subStage);
+					Object dripObj = subStageObj.get("isDrip");
+					String dripVal = (dripObj instanceof JSONObject) ? ((JSONObject) dripObj).optString("value", "") : dripObj.toString();
+					isDrip = dripVal.equals("true");
+					drip.setChecked(isDrip);
+				}
+			}
+
+		}
+		catch (JSONException e) {
+			e.printStackTrace();
+		}
 
 		// Populate Spinner with "Acr" and "Vigha"
 		ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Vigha", "Acr"});
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
+
+		drip.setOnCheckedChangeListener((compoundButton, b) -> {
+			isDrip = b;
+
+			// Get your SharedPreferences instance
+			SharedPreferences prefs1 = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
+			String savedJson1 = prefs1.getString("savedJson", "{}");
+
+			try {
+				// Parse the JSON string
+				JSONObject jsonObject = new JSONObject(savedJson1);
+
+				// Navigate to the correct subStage location.
+				// Make sure to check for existence of keys to avoid exceptions.
+				if (jsonObject.has(userName)) {
+					JSONObject userObject = jsonObject.getJSONObject(userName);
+					if (userObject.has(productName)) {
+						JSONObject productObject = userObject.getJSONObject(productName);
+						if (productObject.has(stage)) {
+							JSONObject stageObject = productObject.getJSONObject(stage);
+							if (stageObject.has(subStage)) {
+								JSONObject subStageObject = stageObject.getJSONObject(subStage);
+								// Update the isDrip value
+								subStageObject.put("isDrip", isDrip);
+							}
+						}
+					}
+				}
+
+				// Save the updated JSON back to SharedPreferences
+				SharedPreferences.Editor editor = prefs1.edit();
+				editor.putString("savedJson", jsonObject.toString());
+				editor.apply();
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+
+			// Now update your UI based on the new state
+			if (b) {
+				amount.setText("1");
+				spinner.setSelection(0);
+				days.setText("0");
+				findViewById(R.id.textInputLayoutName).setVisibility(View.INVISIBLE);
+				findViewById(R.id.textInputLayoutAMo).setVisibility(View.INVISIBLE);
+				spinner.setVisibility(View.INVISIBLE);
+			} else {
+				Log.d("ST", "om = " + o_amo + " days - " + o_days);
+				amount.setText(o_amo);
+				spinner.setSelection(o_position);
+				days.setText(o_days);
+				findViewById(R.id.textInputLayoutName).setVisibility(View.VISIBLE);
+				findViewById(R.id.textInputLayoutAMo).setVisibility(View.VISIBLE);
+				spinner.setVisibility(View.VISIBLE);
+			}
+		});
+
+
+		if(isDrip){
+			amount.setText("1");
+			spinner.setSelection(0);
+			days.setText("0");
+			findViewById(R.id.textInputLayoutName).setVisibility(View.INVISIBLE);
+			findViewById(R.id.textInputLayoutAMo).setVisibility(View.INVISIBLE);
+			spinner.setVisibility(View.INVISIBLE);
+		}
 
 		// Initialize Firebase
 		FirebaseApp.initializeApp(this);
@@ -125,11 +226,14 @@ public class _5_TimingInformation extends AppCompatActivity {
 //		});
 
 		// Date Picker
+
 		date.setOnClickListener(v -> show_date_time_picker());
 		findViewById(R.id.textInputLayoutName2).setOnClickListener(view -> show_date_time_picker());
 
 		// Continue button click listener
 		findViewById(R.id.continueToNext).setOnClickListener(view -> validateAndContinue());
+
+
 	}
 
 	// ✅ Load data from SharedPreferences
@@ -148,7 +252,9 @@ public class _5_TimingInformation extends AppCompatActivity {
 					if(subStageObj.has("interval")){
 						Object intervalObj = subStageObj.get("interval");
 						String intervalValue = (intervalObj instanceof JSONObject) ? ((JSONObject) intervalObj).optString("value", "") : intervalObj.toString();
-						days.setText(intervalValue);
+						Log.d("ST","Days - " + o_days);
+						if(!isDrip) days.setText(intervalValue);
+						o_days = intervalValue;
 					}
 
 					if (subStageObj.has("date")){
@@ -162,7 +268,9 @@ public class _5_TimingInformation extends AppCompatActivity {
 					if (subStageObj.has("count")) {
 						Object countObj = subStageObj.get("count");
 						String countValue = (countObj instanceof JSONObject) ? ((JSONObject) countObj).optString("value", "0") : countObj.toString();
-						amount.setText(countValue); // ✅ Set count as amount
+						Log.d("ST" , " amo " + countValue);
+						if(!isDrip) amount.setText(countValue); // ✅ Set count as amount
+						o_amo = countValue;
 					}
 
 					// ✅ Extract "countValue" correctly from SharedPreferences and preselect in Spinner
@@ -176,7 +284,8 @@ public class _5_TimingInformation extends AppCompatActivity {
 					if (adapter != null) {
 						int spinnerPosition = adapter.getPosition(String.valueOf(countValue)); // Convert int to String
 						if (spinnerPosition >= 0) { // Ensure the position exists in the adapter
-							spinner.setSelection(spinnerPosition); // ✅ Preselect unit
+							if(!isDrip) spinner.setSelection(spinnerPosition); // ✅ Preselect unit
+							o_position = spinnerPosition;
 						}
 					}
 				}
@@ -187,7 +296,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 	}
 
 	// ✅ Validate Fields & Continue
-	// ✅ Save count in SharedPreferences before navigating to allinfo.java
+
 	private void validateAndContinue() {
 		if (days.getText().toString().isEmpty()) {
 			days.setError("Enter interval da ys");
@@ -222,6 +331,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 		}
 
 		editor.putInt("count", countValue); // ✅ Store count
+
 		editor.apply();
 
 		Intent gotoFinalStep = new Intent(this, _6_ShowAllMessages.class);
@@ -259,6 +369,10 @@ public class _5_TimingInformation extends AppCompatActivity {
 	private String getCurrentDate() {
 		SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 		return df.format(new Date());
+	}
+
+	public static boolean getDripState(){
+		return isDrip;
 	}
 
 

@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -52,19 +53,14 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 	private String productName, stage, subStage, mainDate, userName, unit;
 	private double amount;
 
+	static boolean needToSave = false;
+
 	private double calculateAm;
 	private int interval;
 
 	private HashMap<Integer, ArrayList<String>> messagesMap;
 	private JSONObject storedData;
-
-
-//	private RecyclerView recyclerView;
-//	private ProductDataAdapter adapter;
 	private List<String> productDates, productMessages;
-//	private String productName, stage, subStage, mainDate, userName, unit;
-//	private double amount;
-//	private int interval;
 
 	List<Double> productQuantities;
 	List<String> productUnits;
@@ -78,6 +74,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		Log.d("ENimesh","_6_ShowAllMessages");
 
+		setNeedToSave(false);
 
 		// Get Intent Data
 		productName = getIntent().getStringExtra("productName");
@@ -106,7 +103,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		messagesMap = new HashMap<>();
 
-		adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval);
+		adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval,calculateAm,userName,productName,stage,subStage);
 
 		recyclerView.setAdapter(adapter); // ✅ Set adapter after loading data
 
@@ -177,13 +174,12 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				}
 
 					Log.d("ENimesh","formated s " + messagesMap);
-//				TreeMap<Integer, ArrayList<String>> sortedMessagesMap = new TreeMap<>(messagesMap);
 
 				runOnUiThread(() -> {
 					if (adapter != null) {
 						adapter.updateList(messagesMap);
 					} else {
-						adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval);
+						adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval,calculateAm,userName,productName,stage,subStage);
 						recyclerView.setAdapter(adapter);
 					}
 						adapter.notifyDataSetChanged();
@@ -212,7 +208,18 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		unitSpinner.setAdapter(arr_adapter);
 
 		List<String> dialogList = new ArrayList<>();
-		DialogMessageAdapter dialogAdapter = new DialogMessageAdapter(dialogList);
+		DialogMessageAdapter dialogAdapter = new DialogMessageAdapter(dialogList, (message, quantity, unit) -> {
+			etProductMessage.setText(message);
+			etProductQuantity.setText(quantity);
+
+			// ✅ Set spinner selection dynamically
+			for (int i = 0; i < unitSpinner.getAdapter().getCount(); i++) {
+				if (unitSpinner.getAdapter().getItem(i).toString().equalsIgnoreCase(unit)) {
+					unitSpinner.setSelection(i);
+					break;
+				}
+			}
+		});
 		recyclerViewMessages.setAdapter(dialogAdapter);
 		recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
 
@@ -234,7 +241,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		etProductDate.setText(sdf.format(calendar.getTime()));
 
-
 		addMsg.setOnClickListener(v -> {
 			String newMessage = etProductMessage.getText().toString().trim();
 			String selectedUnit = unitSpinner.getSelectedItem().toString();
@@ -255,7 +261,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			}
 
 			// ✅ Correctly add message to `dialogList`
-			String entry = newMessage + " - " + formattedQuantity;
+			String entry = newMessage + " -- " + formattedQuantity;
 
 			if (!dialogList.contains(entry)) {
 				dialogList.add(entry);
@@ -269,7 +275,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			etProductMessage.setText("");
 			etProductQuantity.setText("");
 		});
-
 
 		builder.setView(view);
 		builder.setPositiveButton("Save", (dialog, which) -> {
@@ -291,88 +296,16 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			// ✅ Ensure RecyclerView refreshes
 			adapter.notifyDataSetChanged();
 
-
-			// ✅ Auto-increment "k" correctly
-//			int newKey2 = messagesMap.isEmpty() ? 1 : Collections.max(messagesMap.keySet()) + 1;
-//
-//			// ✅ Add new messages directly to `messagesMap`
-//			Log.d("ENimesh", "List = " + dialogList);
-//			messagesMap.put(newKey2, new ArrayList<>(dialogList));
-
-			// ✅ Update RecyclerView through adapter
-//			adapter.addMessagesToMap(newKey, new ArrayList<>(dialogList));
-//			adapter.notifyDataSetChanged(); // Ensure RecyclerView refreshes
-
 			// ✅ Pass `newKey` to `addDataLocally()`
 			addDataLocally(newKey);
 
 
 		});
 
-
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+
 		builder.create().show();
 	}
-
-
-//	// ✅ Show Dialog to Add Message
-//	private void showAddProductDialog() {
-//		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-//		builder.setTitle("Add Message");
-//
-//		// Inflate custom layout
-//		View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_detail_messages, null);
-//		EditText etProductMessage = view.findViewById(R.id.etProductMessage);
-//		EditText etProductQuantity = view.findViewById(R.id.etProductQuantity);
-//		Spinner unitSpinner = view.findViewById(R.id.unitSpinner); // ✅ Add Unit Spinner
-//
-//		// ✅ Populate Spinner with unit options
-//		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-//										this, R.array.unit_options, android.R.layout.simple_spinner_item);
-//		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//		unitSpinner.setAdapter(adapter);
-//
-//		// Auto-set next available date
-//		EditText etProductDate = view.findViewById(R.id.etProductDate);
-//		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-//		Calendar calendar = Calendar.getInstance();
-//		try {
-//			if (!productDates.isEmpty()) {
-//				calendar.setTime(sdf.parse(productDates.get(productDates.size() - 1)));
-//			} else {
-//				calendar.setTime(sdf.parse(mainDate));
-//			}
-//			calendar.add(Calendar.DAY_OF_MONTH, interval);
-//		} catch (ParseException e) {
-//			e.printStackTrace();
-//		}
-//		etProductDate.setText(sdf.format(calendar.getTime()));
-//
-//		builder.setView(view);
-//
-//		builder.setPositiveButton("Save", (dialog, which) -> {
-//			String newMessage = etProductMessage.getText().toString().trim();
-//			String selectedUnit = unitSpinner.getSelectedItem().toString();
-//			Double newQuantity;
-//
-//			try {
-//				newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim());
-//			} catch (NumberFormatException e) {
-//				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
-//				return;
-//			}
-//
-//			if (newMessage.isEmpty()) {
-//				Toast.makeText(this, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
-//				return;
-//			}
-//
-//			addDataLocally(newMessage, newQuantity, selectedUnit);
-//		});
-//
-//		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-//		builder.create().show();
-//	}
 
 	// ✅ Copy Functionality
 	private void showCopyDialog() {
@@ -429,7 +362,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				Toast.makeText(this, "No data found for user!", Toast.LENGTH_SHORT).show();
 				return;
 			}
-
 			JSONObject userObject = jsonObject.getJSONObject(userName);
 			if (!userObject.has(productName)) return;
 			JSONObject productObject = userObject.getJSONObject(productName);
@@ -438,52 +370,71 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (!stageObject.has(subStage)) return;
 			JSONObject subStageObject = stageObject.getJSONObject(subStage);
 
-			// ✅ Fix `data` field: Convert existing messages to a valid JSON array
+			// ✅ Build a new JSONArray from the messageMap
 			JSONArray messagesArray = new JSONArray();
-			if (subStageObject.has("data")) {
-				Object dataObject = subStageObject.get("data");
 
-				if (dataObject instanceof JSONObject) { // If `data` is wrapped in a `value` key
-					JSONObject dataJsonObject = (JSONObject) dataObject;
-					if (dataJsonObject.has("value")) {
-						messagesArray = new JSONArray(dataJsonObject.getString("value"));
+			// Iterate over all keys in your HashMap (assumed type: HashMap<Integer, ArrayList<String>>)
+			for (Map.Entry<Integer, ArrayList<String>> entry : messagesMap.entrySet()) {
+				int key = entry.getKey();
+				ArrayList<String> messages = entry.getValue();
+				for (String messageEntry : messages) {
+					// We expect the editing format "message -- quantity unit"
+					String[] parts = messageEntry.split(" -- ");
+					if (parts.length < 2) {
+						Log.e("ENimesh", "Unexpected message format: " + messageEntry);
+						continue;
 					}
-				} else if (dataObject instanceof JSONArray) {
-					messagesArray = (JSONArray) dataObject; // ✅ Already a JSONArray
+					String messageText = parts[0].trim();
+					String qtyUnit = parts[1].trim();
+					// Extract quantity and unit using regex (adjust if necessary)
+					String quantityStr = qtyUnit.replaceAll("[^\\d.]", "").trim();
+					String unitStr = qtyUnit.replaceAll("[\\d.]", "").trim();
+
+					JSONObject messageObj = new JSONObject();
+					messageObj.put("m", messageText);
+
+					// Assuming you want to store the original quantity,
+					// if you have a conversion factor (amount), adjust as needed.
+					double quantityValue = 0;
+					try {
+						quantityValue = Double.parseDouble(quantityStr);
+					} catch (NumberFormatException e) {
+						Log.e("ENimesh", "Failed to parse quantity: " + quantityStr, e);
+					}
+					double originalQuantity = quantityValue / amount; // adjust if necessary
+					messageObj.put("q", originalQuantity);
+					messageObj.put("qt", unitStr);
+					messageObj.put("k", key); // store the key if needed
+
+					messagesArray.put(messageObj);
 				}
 			}
 
-			// ✅ Append all current RecyclerView messages with ORIGINAL QUANTITY
-			messagesArray = new JSONArray();
-			for (int i = 0; i < productMessages.size(); i++) {
-				JSONObject messageObj = new JSONObject();
-				messageObj.put("m", productMessages.get(i));
+			// ✅ Replace the data field with the new messages array (stored as JSON string)
+			subStageObject.put("data", messagesArray.toString());
 
-				// ✅ Store original quantity
-				double originalQuantity = productQuantities.get(i) / amount;
-				messageObj.put("q", originalQuantity);
-
-				messageObj.put("qt", productUnits.get(i));
-				messagesArray.put(messageObj);
-			}
-			subStageObject.put("data", messagesArray.toString()); // ✅ Store as JSON string
-
-			// ✅ Ensure `count`, `countingValue`, `date`, and `interval` are updated correctly
-			String[] keysToFix = {"count", "countingValue", "date", "interval"};
+			// ✅ Update other fields: count, countingValue, date, interval
+			String[] keysToFix = {"count", "countingValue", "date", "interval","isDrip"};
 			for (String key : keysToFix) {
 				if (subStageObject.has(key)) {
 					Object valueObj = subStageObject.get(key);
 					if (valueObj instanceof JSONObject) {
 						JSONObject valueJson = (JSONObject) valueObj;
 						if (valueJson.has("value")) {
-							subStageObject.put(key, valueJson.get("value")); // ✅ Directly replace in `subStageObject`
+							subStageObject.put(key, valueJson.get("value"));
+							Log.d("ENimesh","valll " +valueJson.get("value"));
 						}
 					}
 				} else {
-					// ✅ If key does not exist, create it
+					// Create the key if it doesn't exist
 					switch (key) {
 						case "count":
-							subStageObject.put(key, productMessages.size());
+							// Total count across all keys in messageMap
+							int totalMessages = 0;
+							for (ArrayList<String> list : messagesMap.values()) {
+								totalMessages += list.size();
+							}
+							subStageObject.put(key, totalMessages);
 							break;
 						case "countingValue":
 							subStageObject.put(key, unit);
@@ -494,23 +445,24 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 						case "interval":
 							subStageObject.put(key, interval);
 							break;
+						case "isDrip":
+							subStageObject.put("isDrip", false);
+							break;
 					}
 				}
 			}
-
-			// ✅ Convert updated `subStageObject` to a Map for Firebase
+			// ✅ Convert updated subStageObject to a Map for Firebase upload.
 			Map<String, Object> firebaseData = jsonToMapWithoutValueWrapper(subStageObject);
-
 			Log.d("ENimesh", "FD: " + userName + " /" + productName + "/ " + stage + " /" + subStage + " /" + firebaseData);
 
-			// ✅ Upload only the relevant `subStage` as a proper JSON object
+			// ✅ Upload only the relevant subStage as a proper JSON object
 			reference.child(userName)
 											.child(productName)
 											.child(stage)
 											.child(subStage)
 											.setValue(firebaseData)
 											.addOnSuccessListener(aVoid ->
-																			                      Toast.makeText(_6_ShowAllMessages.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show()
+																			                      Toast.makeText(this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show()
 											                     )
 											.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
 
@@ -519,6 +471,110 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		}
 	}
 
+//
+//	private void uploadDataToFirebase() {
+//		DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+//
+//		try {
+//			// ✅ Fetch stored JSON from SharedPreferences
+//			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
+//			String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
+//			JSONObject jsonObject = new JSONObject(savedJson);
+//
+//			// ✅ Navigate to the correct path in SharedPreferences data
+//			if (!jsonObject.has(userName)) {
+//				Toast.makeText(this, "No data found for user!", Toast.LENGTH_SHORT).show();
+//				return;
+//			}
+//
+//			JSONObject userObject = jsonObject.getJSONObject(userName);
+//			if (!userObject.has(productName)) return;
+//			JSONObject productObject = userObject.getJSONObject(productName);
+//			if (!productObject.has(stage)) return;
+//			JSONObject stageObject = productObject.getJSONObject(stage);
+//			if (!stageObject.has(subStage)) return;
+//			JSONObject subStageObject = stageObject.getJSONObject(subStage);
+//
+//			// ✅ Fix `data` field: Convert existing messages to a valid JSON array
+//			JSONArray messagesArray = new JSONArray();
+//			if (subStageObject.has("data")) {
+//				Object dataObject = subStageObject.get("data");
+//
+//				if (dataObject instanceof JSONObject) { // If `data` is wrapped in a `value` key
+//					JSONObject dataJsonObject = (JSONObject) dataObject;
+//					if (dataJsonObject.has("value")) {
+//						messagesArray = new JSONArray(dataJsonObject.getString("value"));
+//					}
+//				} else if (dataObject instanceof JSONArray) {
+//					messagesArray = (JSONArray) dataObject; // ✅ Already a JSONArray
+//				}
+//			}
+//
+//			// ✅ Append all current RecyclerView messages with ORIGINAL QUANTITY
+//			messagesArray = new JSONArray();
+//			for (int i = 0; i < productMessages.size(); i++) {
+//				JSONObject messageObj = new JSONObject();
+//				messageObj.put("m", productMessages.get(i));
+//
+//				// ✅ Store original quantity
+//				double originalQuantity = productQuantities.get(i) / amount;
+//				messageObj.put("q", originalQuantity);
+//
+//				messageObj.put("qt", productUnits.get(i));
+//				messagesArray.put(messageObj);
+//			}
+//			subStageObject.put("data", messagesArray.toString()); // ✅ Store as JSON string
+//
+//			// ✅ Ensure `count`, `countingValue`, `date`, and `interval` are updated correctly
+//			String[] keysToFix = {"count", "countingValue", "date", "interval"};
+//			for (String key : keysToFix) {
+//				if (subStageObject.has(key)) {
+//					Object valueObj = subStageObject.get(key);
+//					if (valueObj instanceof JSONObject) {
+//						JSONObject valueJson = (JSONObject) valueObj;
+//						if (valueJson.has("value")) {
+//							subStageObject.put(key, valueJson.get("value")); // ✅ Directly replace in `subStageObject`
+//						}
+//					}
+//				} else {
+//					// ✅ If key does not exist, create it
+//					switch (key) {
+//						case "count":
+//							subStageObject.put(key, productMessages.size());
+//							break;
+//						case "countingValue":
+//							subStageObject.put(key, unit);
+//							break;
+//						case "date":
+//							subStageObject.put(key, mainDate);
+//							break;
+//						case "interval":
+//							subStageObject.put(key, interval);
+//							break;
+//					}
+//				}
+//			}
+//
+//			// ✅ Convert updated `subStageObject` to a Map for Firebase
+//			Map<String, Object> firebaseData = jsonToMapWithoutValueWrapper(subStageObject);
+//
+//			Log.d("ENimesh", "FD: " + userName + " /" + productName + "/ " + stage + " /" + subStage + " /" + firebaseData);
+//
+//			// ✅ Upload only the relevant `subStage` as a proper JSON object
+//			reference.child(userName)
+//											.child(productName)
+//											.child(stage)
+//											.child(subStage)
+//											.setValue(firebaseData)
+//											.addOnSuccessListener(aVoid ->
+//																			                      Toast.makeText(_6_ShowAllMessages.this, "Data Synced to Firebase!", Toast.LENGTH_SHORT).show()
+//											                     )
+//											.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
+//
+//		} catch (JSONException e) {
+//			Log.e("Firebase", "JSON Processing Error", e);
+//		}
+//	}
 
 	private Map<String, Object> jsonToMapWithoutValueWrapper(JSONObject jsonObject) throws JSONException {
 		Map<String, Object> map = new HashMap<>();
@@ -571,7 +627,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (messagesMap.containsKey(key)) {
 				for (String message : Objects.requireNonNull(messagesMap.get(key))) {
 					JSONObject messageObj = new JSONObject(); // Create JSON object
-					String[] parts = message.split(" - ");
+					String[] parts = message.split(" -- ");
 					messageObj.put("m", parts[0]); // Extract message
 					messageObj.put("q", parts[1].replaceAll("[^\\d]", "")); // Extract quantity
 					messageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit only
@@ -596,6 +652,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 			Toast.makeText(this, "Data Added Locally!", Toast.LENGTH_SHORT).show();
 
+			setNeedToSave(true);
+
 			savedJson = prefs.getString("savedJson", "{}"); // Retrieve updated JSON
 			Log.d("ENimesh", "After adding Data to SharedPreferences: " + savedJson);
 		} catch (JSONException e) {
@@ -603,98 +661,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			Toast.makeText(this, "Failed to add data!", Toast.LENGTH_SHORT).show();
 		}
 	}
-
-
-//	// ✅ Add Data Locally in the correct format
-//	private void addDataLocally(String newMessage, Double quantity, String unit) {
-//		try {
-//			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
-//			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
-//
-//			Log.d("ENimesh","Add Data to SharedPreferences" + savedJson);
-//
-//			JSONObject jsonObject = new JSONObject(savedJson);
-//
-//			// ✅ Ensure correct structure exists in SharedPreferences
-//			if (!jsonObject.has(userName)) jsonObject.put(userName, new JSONObject());
-//			JSONObject usersObj = jsonObject.getJSONObject(userName);
-//
-//			if (!usersObj.has(productName)) usersObj.put(productName, new JSONObject());
-//			JSONObject productObj = usersObj.getJSONObject(productName);
-//
-//			if (!productObj.has(stage)) productObj.put(stage, new JSONObject());
-//			JSONObject stageObj = productObj.getJSONObject(stage);
-//
-//			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
-//			JSONObject subStageObj = stageObj.getJSONObject(subStage);
-//
-//			// ✅ Retrieve or create messages array
-//			JSONArray messagesArray;
-//			if (subStageObj.has("data")) {
-//				try {
-//					messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
-//
-//				} catch (JSONException e) {
-//					messagesArray = new JSONArray();
-//				}
-//			} else {
-//				messagesArray = new JSONArray();
-//			}
-//
-//			// ✅ Append new message
-//			JSONObject newMessageObj = new JSONObject();
-//			newMessageObj.put("m", newMessage);
-//			newMessageObj.put("q", quantity);
-//			newMessageObj.put("qt", unit);
-////			newMessageObj.put("k", k);
-//			messagesArray.put(newMessageObj);
-//
-//			// ✅ Store updated messages in correct format
-//			JSONObject formattedData = new JSONObject();
-//			formattedData.put("value", messagesArray.toString());
-//			subStageObj.put("data", formattedData);
-//
-//			// ✅ Save updated JSON to SharedPreferences
-//			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
-//			storedData = subStageObj; // ✅ Ensure `storedData` is updated
-//
-//			// ✅ Update RecyclerView
-//			productMessages.add(newMessage);
-//			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-//			Calendar calendar = Calendar.getInstance();
-//			if (!productDates.isEmpty()) {
-//				try {
-//					calendar.setTime(Objects.requireNonNull(sdf.parse(productDates.get(productDates.size() - 1))));
-//				} catch (ParseException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//			calendar.add(Calendar.DAY_OF_MONTH, interval);
-//			productDates.add(sdf.format(calendar.getTime())); // ✅ Adds next date correctly
-//
-//			double convertedQuantity = quantity * amount; // ✅ Multiply with amount
-//			productQuantities.add(convertedQuantity);
-//			productUnits.add(unit);
-//
-//			// ✅ Notify Adapter
-//			runOnUiThread(() -> {
-//				if (adapter != null) {
-//					adapter.notifyItemInserted(productMessages.size() - 1);
-//				}
-//			});
-//
-//			Toast.makeText(this, "Data Added Locally!", Toast.LENGTH_SHORT).show();
-//
-//		} catch (JSONException e) {
-//			Log.e("SharedPreferences", "Error updating JSON", e);
-//			Toast.makeText(this, "Failed to add data!", Toast.LENGTH_SHORT).show();
-//		}
-//	}
-
-
 	// ✅ Copy Data to Clipboard
 	private void copyDataToClipboard(String header, String footer) {
-		if (productDates.isEmpty() || productMessages.isEmpty()) {
+		if (messagesMap.isEmpty()) {
 			Toast.makeText(this, "No data to copy!", Toast.LENGTH_SHORT).show();
 			return;
 		}
@@ -706,25 +675,45 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			copiedText.append(header).append("\n\n");
 		}
 
-		// ✅ Format Dates & Messages
-		for (int i = 0; i < productDates.size(); i++) {
-			copiedText.append("- *").append(productDates.get(i)).append("*\n");
+		// ✅ Check if interval is 0 (add all messages to mainDate)
+		if (interval == 0) {
+			StringBuilder finalCopiedString = new StringBuilder();
 
-			// ✅ Retrieve Message, Quantity, and Unit
-			String message = productMessages.get(i);
-			double quantity = productQuantities.get(i) * amount;
-			String unit = productUnits.get(i);
+			// Append messages to mainDate directly
+			for (ArrayList<String> messages : messagesMap.values()) {
+				for (String message : messages) {
+					finalCopiedString.append("- ").append(message).append("\n");
+				}
+			}
 
-			// ✅ Format Quantity with Full Unit Name & Proper Formatting
-			String formattedQuantity = formatQuantityWithFullUnit(quantity, unit);
+			copiedText.append("- *").append(mainDate).append("*\n");
+			copiedText.append(finalCopiedString).append("\n\n");
+		} else {
+			// ✅ Iterate over each `k` in messagesMap (sorted automatically)
+			Log.d("ENimesh", "keyset" + messagesMap.toString() + " " + messagesMap.keySet() + " " + messagesMap.values());
+			int counter = 0;
+			for (Integer k : messagesMap.keySet()) {
+				String date = addDaysToDate(mainDate, counter * interval); // ✅ Generate date dynamically
+				copiedText.append("- *").append(date).append("*\n"); // ✅ Append Date
+				counter++; // Increment for next interval
 
-			// ✅ Append Formatted Message
-			copiedText.append("- ").append(message).append(" -- ").append(formattedQuantity).append("\n\n");
+				// ✅ Retrieve messages for the current `k`
+				ArrayList<String> messages = messagesMap.get(k);
+
+				if (messages != null) {
+					StringBuilder finalCopiedString = new StringBuilder();
+					for (String message : messages) {
+						finalCopiedString.append("- ").append(message).append("\n");
+					}
+					Log.d("ENimesh", "fs = " + finalCopiedString);
+					copiedText.append(finalCopiedString).append("\n\n"); // ✅ Append Message
+				}
+			}
 		}
 
 		// ✅ Add Footer if provided
 		if (!footer.isEmpty()) {
-			copiedText.append("\n").append(footer);
+			copiedText.append(footer);
 		}
 
 		// ✅ Copy to Clipboard
@@ -735,47 +724,21 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
 	}
 
-	private String formatQuantityWithFullUnit(double quantity, String unit) {
-		double convertedQuantity = quantity;
-		String finalUnit = unit;
-
-		switch (unit.toLowerCase()) {
-			case "g":
-			case "gram":
-				if (quantity >= 1000) {
-					convertedQuantity = quantity / 1000;
-					finalUnit = "KG"; // Convert to KG
-				} else {
-					finalUnit = "grams"; // Keep grams
-				}
-				break;
-
-			case "kg":
-			case "kilogram":
-				finalUnit = "KG"; // Keep KG
-				break;
-
-			case "ml":
-			case "milliliter":
-				if (quantity >= 1000) {
-					convertedQuantity = quantity / 1000;
-					finalUnit = "Letter"; // Convert ML to L (Letter)
-				} else {
-					finalUnit = "ML"; // Keep ML
-				}
-				break;
-
-			case "l":
-			case "litre":
-			case "liter":
-				finalUnit = "Letter"; // Convert to Letter
-				break;
-
-			default:
-				finalUnit = unit; // Default: Keep original unit
+	private String addDaysToDate(String startDate, int daysToAdd) {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+		Log.d("ENimesh","d = " + startDate);
+		try {
+			Date date = dateFormat.parse(startDate);
+			if (date != null) {
+				Calendar calendar = Calendar.getInstance();
+				calendar.setTime(date);
+				calendar.add(Calendar.DAY_OF_MONTH, daysToAdd); // ✅ Add the interval days
+				return dateFormat.format(calendar.getTime()); // ✅ Return formatted new date
+			}
+		} catch (ParseException e) {
+			Log.e("DateError", "Error parsing start date", e);
 		}
-
-		return formatNumber(convertedQuantity) + " " + finalUnit;
+		return startDate; // ✅ Fallback to original date if parsing fails
 	}
 
 	// ✅ Formats numbers with commas, ensuring proper decimal places
@@ -831,6 +794,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		return formatNumber(convertedQuantity) + " " + finalUnit;
 	}
 
+	public static void setNeedToSave(boolean val){
+		needToSave = val;
+	}
 
 	@Override
 	protected void onResume() {
@@ -838,6 +804,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		loadDataFromSharedPreferences(); // ✅ Ensure RecyclerView is updated when reopening the page
 	}
 
-
-
+	@Override
+	public void onBackPressed() {
+		if(needToSave) uploadDataToFirebase();
+		super.onBackPressed();
+	}
 }

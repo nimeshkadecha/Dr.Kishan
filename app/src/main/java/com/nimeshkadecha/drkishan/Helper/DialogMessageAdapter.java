@@ -1,10 +1,12 @@
 package com.nimeshkadecha.drkishan.Helper;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -12,11 +14,19 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.nimeshkadecha.drkishan.R;
 
 import java.util.List;
+
 public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdapter.ViewHolder> {
 	private List<String> dialogList;
+	private OnItemClickListener listener;
 
-	public DialogMessageAdapter(List<String> dialogList) {
+	// Interface for item click listener
+	public interface OnItemClickListener {
+		void onItemClick(String message, String quantity, String unit);
+	}
+
+	public DialogMessageAdapter(List<String> dialogList, OnItemClickListener listener) {
 		this.dialogList = dialogList;
+		this.listener = listener;
 	}
 
 	@NonNull
@@ -27,8 +37,43 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 	}
 
 	@Override
-	public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-		holder.tvMessage.setText(dialogList.get(position));
+	public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
+		String item = dialogList.get(position);
+		holder.tvMessage.setText(item);
+
+		holder.itemView.setOnClickListener(v -> {
+			Log.d("ENimesh", "Clicked on item: " + item);
+
+			if (listener != null) {
+				String[] parts = item.split(" -- ");
+				Log.d("ENimesh" , "Len = " + parts.length);
+				if (parts.length == 2) {
+					String message = parts[0];
+					String quantity = parts[1].replaceAll("[^\\d.]", ""); // Extract numeric part including decimal
+					String unit = parts[1].replace(quantity, "").trim(); // Extract unit by removing quantity
+
+					Log.d("ENimesh", "Extracted - Message: " + message + ", Quantity: " + quantity + ", Unit: " + unit);
+
+					listener.onItemClick(message, quantity, unit);
+
+					dialogList.remove(position); // Remove item from the list
+					notifyDataSetChanged(); // Refresh RecyclerView
+				}
+			}
+		});
+
+		holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+			@Override
+			public boolean onLongClick(View view) {
+
+				dialogList.remove(position);
+				notifyDataSetChanged();
+				Toast.makeText(view.getContext(), "Removed", Toast.LENGTH_SHORT).show();
+				return false;
+
+			}
+		});
+
 	}
 
 	@Override
@@ -45,20 +90,15 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 		}
 	}
 
-
+	// ✅ Update list method (prevents duplicates)
 	public void updateList(List<String> newList) {
-		if (newList == null || newList.isEmpty()) return; // Prevent empty updates
+		if (newList == null || newList.isEmpty()) return;
 
 		for (String item : newList) {
-			if (!dialogList.contains(item)) { // Prevent duplicates
+			if (!dialogList.contains(item)) { // Prevent duplicate entries
 				dialogList.add(item);
 			}
 		}
-
-		Log.d("ENimesh", "Updated dialogList: " + dialogList);
-		notifyDataSetChanged(); // Ensure RecyclerView refreshes
+		notifyDataSetChanged();
 	}
-
-
-
 }
