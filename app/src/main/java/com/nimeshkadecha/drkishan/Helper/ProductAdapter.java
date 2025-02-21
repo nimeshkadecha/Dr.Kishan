@@ -1,5 +1,6 @@
 package com.nimeshkadecha.drkishan.Helper;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -29,12 +30,18 @@ import java.util.List;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
 
-	private List<String> itemList;
-	private String userName, productName, stage;
-	private AdapterType adapterType;
-	private Context context;
+	private final List<String> itemList;
+	private final String userName;
+	private String productName;
+	private String stage;
+	private final AdapterType adapterType;
+	private final Context context;
 
 	private static final String PREFS_NAME = "DrKishanPrefs"; // 🔹 SharedPreferences Key
+
+	public Context getContext() {
+		return context;
+	}
 
 	public enum AdapterType {
 		PRODUCTS, STAGES, SUB_STAGES
@@ -112,6 +119,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		return itemList.size();
 	}
 
+	@SuppressLint("NotifyDataSetChanged")
 	public void updateList(List<String> newItemList) {
 		if (this.itemList.equals(newItemList)) {
 			Log.d("ENimesh", "No changes detected, skipping update.");
@@ -203,9 +211,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			}
 		});
 
-		builder.setNegativeButton("Delete", (dialog, which) -> {
-			deleteItemFromStorage(context, position, currentName);
-		});
+		builder.setNegativeButton("Delete", (dialog, which) -> deleteItemFromStorage(context, position, currentName));
 
 		builder.setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss());
 

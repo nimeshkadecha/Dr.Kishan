@@ -44,9 +44,8 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		return false;
 	}
 
-	private RecyclerView recyclerView;
 	private ProductAdapter adapter;
-	private List<String> productList = new ArrayList<>();
+	private final List<String> productList = new ArrayList<>();
 	private String userName;
 	private SharedPreferences sharedPreferences;
 
@@ -56,13 +55,11 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_2_product_list_1_main);
 
-		Log.d("ENimesh","_2_ProductList_1_main");
-
 		userName = getIntent().getStringExtra("name");
 		sharedPreferences = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 
 		// ✅ Setup RecyclerView
-		recyclerView = findViewById(R.id.productsList);
+		RecyclerView recyclerView = findViewById(R.id.productsList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
 		adapter = new ProductAdapter(_2_ProductList_1_main.this, productList, userName, ProductAdapter.AdapterType.PRODUCTS);
 		recyclerView.setAdapter(adapter);
@@ -75,10 +72,9 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 	}
 
 	/** ✅ Load Products from SharedPreferences */
+	@SuppressLint("NotifyDataSetChanged")
 	private void loadProductsFromPrefs() {
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
-
-		Log.d("ENimesh","Data from SharedPreferences" + jsonString);
 
 		try {
 			JSONObject json = new JSONObject(jsonString);
@@ -137,8 +133,6 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		}
 
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
-
-		Log.d("ENimesh","Adding Data to SharedPreferences" + jsonString);
 
 		try {
 			JSONObject json = new JSONObject(jsonString);

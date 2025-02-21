@@ -1,5 +1,6 @@
 package com.nimeshkadecha.drkishan.pages;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -28,9 +29,8 @@ import java.util.List;
 
 public class _3_ProductList_2_staging extends AppCompatActivity {
 
-	private RecyclerView recyclerView;
 	private ProductAdapter adapter;
-	private List<String> stageList = new ArrayList<>();
+	private final List<String> stageList = new ArrayList<>();
 	private String productName, userName;
 
 	@Override
@@ -42,8 +42,6 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
 
-		Log.d("ENimesh","_3_ProductList_2_staging");
-
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
 		header.setText(MessageFormat.format("FP > {0}", productName));
@@ -52,7 +50,7 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
 		// Setup RecyclerView
-		recyclerView = findViewById(R.id.stageList);
+		RecyclerView recyclerView = findViewById(R.id.stageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
 		adapter = new ProductAdapter(_3_ProductList_2_staging.this, stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
 
@@ -65,10 +63,9 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 	}
 
 	/** ✅ Load Stages from SharedPreferences */
+	@SuppressLint("NotifyDataSetChanged")
 	private void loadStagesFromPrefs() {
 		String jsonString = getJsonFromPrefs();
-
-		Log.d("ENimesh","Data from SharedPreferences" + jsonString);
 
 		if (jsonString.isEmpty()) {
 			Log.d("SharedPrefs", "No saved data found.");
@@ -130,8 +127,6 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 	private void addStageToPrefs(String stageName) {
 		String jsonString = getJsonFromPrefs();
 		JSONObject json;
-
-		Log.d("ENimesh","Adding Data to SharedPreferences" + jsonString);
 
 		try {
 			json = jsonString.isEmpty() ? new JSONObject() : new JSONObject(jsonString);

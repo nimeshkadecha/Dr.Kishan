@@ -19,7 +19,6 @@
             android:layout_height="wrap_content"
             android:textAlignment="center"
             android:theme="@style/textView"
-            android:text="Product Name"
             android:textSize="18sp"
             android:textStyle="bold"
             />

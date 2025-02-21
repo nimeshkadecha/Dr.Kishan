@@ -1,5 +1,29 @@
 <resources>
     <string name="app_name">Farm Planner</string>
+    <string name="enter_password">Enter Password</string>
+    <string name="login">Login</string>
+    <string name="created_by_krinal">Created by Krinal</string>
+    <string name="enter_name">Enter Name</string>
+    <string name="add">Add +</string>
+    <string name="log_out">Log out</string>
+    <string name="add_stage">Add stage</string>
+    <string name="add_sub_stage">Add sub stage</string>
+    <string name="intervals">intervals</string>
+    <string name="_1">1</string>
+    <string name="enter_date">Enter Date</string>
+    <string name="amount">Amount</string>
+    <string name="drip">Drip</string>
+    <string name="spray">Spray</string>
+    <string name="continue_l">continue</string>
+    <string name="copy">Copy</string>
+    <string name="save">Save</string>
+    <string name="addNormal">Add</string>
+    <string name="enter_date_dd_mm_yyyy">Enter Date (dd/mm/yyyy)</string>
+    <string name="enter_message">Enter Message</string>
+    <string name="enter_quentity">Enter Quentity</string>
+    <string name="enter_product_name">Enter product name</string>
+    <string name="enter_header_optional">Enter Header (Optional)</string>
+    <string name="enter_footer_optional">Enter Footer (Optional)</string>
 
     <!-- ✅ Add Unit Options -->
     <string-array name="unit_options">

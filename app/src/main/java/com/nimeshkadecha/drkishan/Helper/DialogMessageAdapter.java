@@ -16,8 +16,8 @@ import com.nimeshkadecha.drkishan.R;
 import java.util.List;
 
 public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdapter.ViewHolder> {
-	private List<String> dialogList;
-	private OnItemClickListener listener;
+	private final List<String> dialogList;
+	private final OnItemClickListener listener;
 
 	// Interface for item click listener
 	public interface OnItemClickListener {
@@ -36,17 +36,16 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 		return new ViewHolder(view);
 	}
 
+	@SuppressLint("NotifyDataSetChanged")
 	@Override
 	public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
 		String item = dialogList.get(position);
 		holder.tvMessage.setText(item);
 
 		holder.itemView.setOnClickListener(v -> {
-			Log.d("ENimesh", "Clicked on item: " + item);
 
 			if (listener != null) {
 				String[] parts = item.split(" -- ");
-				Log.d("ENimesh" , "Len = " + parts.length);
 				if (parts.length == 2) {
 					String message = parts[0];
 					String quantity = parts[1].replaceAll("[^\\d.]", ""); // Extract numeric part including decimal
@@ -62,16 +61,13 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 			}
 		});
 
-		holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-			@Override
-			public boolean onLongClick(View view) {
+		holder.itemView.setOnLongClickListener(view -> {
 
-				dialogList.remove(position);
-				notifyDataSetChanged();
-				Toast.makeText(view.getContext(), "Removed", Toast.LENGTH_SHORT).show();
-				return false;
+			dialogList.remove(position);
+			notifyDataSetChanged();
+			Toast.makeText(view.getContext(), "Removed", Toast.LENGTH_SHORT).show();
+			return false;
 
-			}
 		});
 
 	}
@@ -88,17 +84,5 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 			super(itemView);
 			tvMessage = itemView.findViewById(R.id.txtProductName);
 		}
-	}
-
-	// ✅ Update list method (prevents duplicates)
-	public void updateList(List<String> newList) {
-		if (newList == null || newList.isEmpty()) return;
-
-		for (String item : newList) {
-			if (!dialogList.contains(item)) { // Prevent duplicate entries
-				dialogList.add(item);
-			}
-		}
-		notifyDataSetChanged();
 	}
 }

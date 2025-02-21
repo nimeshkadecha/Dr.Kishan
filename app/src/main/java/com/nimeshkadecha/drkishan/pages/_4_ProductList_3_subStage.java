@@ -1,5 +1,6 @@
 package com.nimeshkadecha.drkishan.pages;
 
+import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -30,8 +31,7 @@ import java.util.List;
 public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 	private String userName, productName, stage;
-	private List<String> subStageList = new ArrayList<>();
-	private RecyclerView recyclerView;
+	private final List<String> subStageList = new ArrayList<>();
 	private ProductAdapter adapter;
 
 	@Override
@@ -39,8 +39,6 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_4_product_list_3_sub_stage);
-
-		Log.d("ENimesh","_4_ProductList_3_subStage");
 
 		// ✅ Get Data from Intent
 		userName = getIntent().getStringExtra("userName");
@@ -55,7 +53,7 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
 		// ✅ Setup RecyclerView
-		recyclerView = findViewById(R.id.subStageList);
+		RecyclerView recyclerView = findViewById(R.id.subStageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
 		adapter = new ProductAdapter(_4_ProductList_3_subStage.this, subStageList, userName, productName, stage, ProductAdapter.AdapterType.SUB_STAGES);
 		recyclerView.setAdapter(adapter);
@@ -73,8 +71,6 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 		String savedJson = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
 										.getString("savedJson", "");
-
-		Log.d("ENimesh","Data from SharedPreferences" + savedJson);
 
 		try {
 			JSONObject jsonObject = new JSONObject(savedJson);
@@ -123,6 +119,7 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		alertDialog.show();
 	}
 
+	@SuppressLint("NotifyDataSetChanged")
 	private void addSubStageToPrefs(String subStageName) {
 		try {
 			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
@@ -145,8 +142,6 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 			jsonObject.put(userName, userObj);
 
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
-
-			Log.d("ENimesh","Adding Data to SharedPreferences" + jsonObject.toString());
 
 			subStageList.add(subStageName);
 			adapter.notifyDataSetChanged();

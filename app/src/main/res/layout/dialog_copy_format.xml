@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -9,15 +10,17 @@
         android:id="@+id/etHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter Header (Optional)"
-        android:inputType="text" />
+        android:hint="@string/enter_header_optional"
+        android:inputType="text"
+        tools:ignore="Autofill" />
 
     <EditText
         android:id="@+id/etFooter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter Footer (Optional)"
+        android:hint="@string/enter_footer_optional"
         android:inputType="text"
-        android:layout_marginTop="10dp"/>
+        android:layout_marginTop="10dp"
+        tools:ignore="Autofill" />
 
 </LinearLayout>

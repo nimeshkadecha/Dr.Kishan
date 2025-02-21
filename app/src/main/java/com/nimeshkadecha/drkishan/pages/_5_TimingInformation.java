@@ -1,5 +1,6 @@
 package com.nimeshkadecha.drkishan.pages;
 
+import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -9,7 +10,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.Spinner;
@@ -21,30 +21,21 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
+import java.util.Objects;
 
 public class _5_TimingInformation extends AppCompatActivity {
 
-	private DatabaseReference reference;
 	private EditText date, days, amount;
 	private Spinner spinner;
 
 	private static boolean isDrip = false;
-	private Switch drip;
 
 	private String o_days,o_amo;
 	private int o_position;
@@ -56,8 +47,6 @@ public class _5_TimingInformation extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
 		setContentView(R.layout.activity_5_timing_info);
-
-		Log.d("ENimesh","_5_TimingInformation");
 
 		// Get values from Intent
 		userName = getIntent().getStringExtra("userName");
@@ -77,12 +66,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 		date = findViewById(R.id.date);
 		amount = findViewById(R.id.editTextText);
 		spinner = findViewById(R.id.spinner);
-		drip = findViewById(R.id.switch1Drip);
-
-//		o_days = "0";
-//		o_position = 0;
-//		o_amo = "0";
-
+		@SuppressLint("UseSwitchCompatOrMaterialCode") Switch drip = findViewById(R.id.switch1Drip);
 
 		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		String savedJson = prefs.getString("savedJson", "{}"); // Default: empty JSON
@@ -118,24 +102,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 
 			try {
 				// Parse the JSON string
-				JSONObject jsonObject = new JSONObject(savedJson1);
-
-				// Navigate to the correct subStage location.
-				// Make sure to check for existence of keys to avoid exceptions.
-				if (jsonObject.has(userName)) {
-					JSONObject userObject = jsonObject.getJSONObject(userName);
-					if (userObject.has(productName)) {
-						JSONObject productObject = userObject.getJSONObject(productName);
-						if (productObject.has(stage)) {
-							JSONObject stageObject = productObject.getJSONObject(stage);
-							if (stageObject.has(subStage)) {
-								JSONObject subStageObject = stageObject.getJSONObject(subStage);
-								// Update the isDrip value
-								subStageObject.put("isDrip", isDrip);
-							}
-						}
-					}
-				}
+				JSONObject jsonObject = getJsonObject(savedJson1);
 
 				// Save the updated JSON back to SharedPreferences
 				SharedPreferences.Editor editor = prefs1.edit();
@@ -154,7 +121,6 @@ public class _5_TimingInformation extends AppCompatActivity {
 				findViewById(R.id.textInputLayoutAMo).setVisibility(View.INVISIBLE);
 				spinner.setVisibility(View.INVISIBLE);
 			} else {
-				Log.d("ST", "om = " + o_amo + " days - " + o_days);
 				amount.setText(o_amo);
 				spinner.setSelection(o_position);
 				days.setText(o_days);
@@ -180,50 +146,8 @@ public class _5_TimingInformation extends AppCompatActivity {
 			return;
 		}
 
-		// Set Firebase reference path
-		reference = FirebaseDatabase.getInstance().getReference(userName + "/" + productName + "/" + stage + "/" + subStage);
-		Log.d("ENimesh", "Firebase Reference: " + reference.toString());
-
 		// Fetch data from SharedPreferences (Local Storage)
 		loadDataFromSharedPreferences();
-
-		// Fetch data from Firebase (if needed)
-//		reference.addValueEventListener(new ValueEventListener() {
-//			@Override
-//			public void onDataChange(@NonNull DataSnapshot snapshot) {
-//				if (snapshot.exists()) {
-//					// Fetch interval (days)
-//					if (snapshot.child("interval").exists()) {
-//						String intervalValue = snapshot.child("interval").getValue().toString();
-//						days.setText(intervalValue != null ? intervalValue : "");
-//					}
-//
-//					// Fetch date
-//					if (snapshot.child("date").exists()) {
-//						String dateValue = snapshot.child("date").getValue().toString();
-//						date.setText(dateValue != null ? dateValue : getCurrentDate());
-//					}
-//
-//					// Fetch amount
-//					if (snapshot.child("amount").exists()) {
-//						String amountValue = snapshot.child("amount").getValue().toString();
-//						amount.setText(amountValue != null ? amountValue : "");
-//					}
-//
-//					// Fetch Counting Unit (Spinner)
-//					if (snapshot.child("countingValue").exists()) {
-//						String unit = snapshot.child("countingValue").getValue().toString();
-//						int spinnerPosition = adapter.getPosition(unit);
-//						spinner.setSelection(spinnerPosition);
-//					}
-//				}
-//			}
-//
-//			@Override
-//			public void onCancelled(@NonNull DatabaseError error) {
-//				Log.e("Firebase", "Error fetching data", error.toException());
-//			}
-//		});
 
 		// Date Picker
 
@@ -234,6 +158,29 @@ public class _5_TimingInformation extends AppCompatActivity {
 		findViewById(R.id.continueToNext).setOnClickListener(view -> validateAndContinue());
 
 
+	}
+
+	@NonNull
+	private JSONObject getJsonObject(String savedJson1) throws JSONException {
+		JSONObject jsonObject = new JSONObject(savedJson1);
+
+		// Navigate to the correct subStage location.
+		// Make sure to check for existence of keys to avoid exceptions.
+		if (jsonObject.has(userName)) {
+			JSONObject userObject = jsonObject.getJSONObject(userName);
+			if (userObject.has(productName)) {
+				JSONObject productObject = userObject.getJSONObject(productName);
+				if (productObject.has(stage)) {
+					JSONObject stageObject = productObject.getJSONObject(stage);
+					if (stageObject.has(subStage)) {
+						JSONObject subStageObject = stageObject.getJSONObject(subStage);
+						// Update the isDrip value
+						subStageObject.put("isDrip", isDrip);
+					}
+				}
+			}
+		}
+		return jsonObject;
 	}
 
 	// ✅ Load data from SharedPreferences
@@ -252,7 +199,6 @@ public class _5_TimingInformation extends AppCompatActivity {
 					if(subStageObj.has("interval")){
 						Object intervalObj = subStageObj.get("interval");
 						String intervalValue = (intervalObj instanceof JSONObject) ? ((JSONObject) intervalObj).optString("value", "") : intervalObj.toString();
-						Log.d("ST","Days - " + o_days);
 						if(!isDrip) days.setText(intervalValue);
 						o_days = intervalValue;
 					}
@@ -268,7 +214,6 @@ public class _5_TimingInformation extends AppCompatActivity {
 					if (subStageObj.has("count")) {
 						Object countObj = subStageObj.get("count");
 						String countValue = (countObj instanceof JSONObject) ? ((JSONObject) countObj).optString("value", "0") : countObj.toString();
-						Log.d("ST" , " amo " + countValue);
 						if(!isDrip) amount.setText(countValue); // ✅ Set count as amount
 						o_amo = countValue;
 					}
@@ -277,7 +222,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 					int countValue = 0;
 					if (prefs.contains("count")) {
 						Object countPref = prefs.getAll().get("count");
-						countValue = (countPref instanceof JSONObject) ? ((JSONObject) countPref).optInt("value", 0) : Integer.parseInt(countPref.toString());
+						countValue = (countPref instanceof JSONObject) ? ((JSONObject) countPref).optInt("value", 0) : Integer.parseInt(Objects.requireNonNull(countPref).toString());
 					}
 
 					ArrayAdapter<String> adapter = (ArrayAdapter<String>) spinner.getAdapter();
@@ -359,28 +304,13 @@ public class _5_TimingInformation extends AppCompatActivity {
 		int month = calendar.get(Calendar.MONTH);
 		int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-		DatePickerDialog datePickerDialog = new DatePickerDialog(_5_TimingInformation.this, (view, year1, month1, dayOfMonth) -> {
-			date.setText(dayOfMonth + "/" + (month1 + 1) + "/" + year1);
-		}, year, month, day);
+		@SuppressLint("SetTextI18n") DatePickerDialog datePickerDialog = new DatePickerDialog(_5_TimingInformation.this, (view, year1, month1, dayOfMonth) -> date.setText(dayOfMonth + "/" + (month1 + 1) + "/" + year1), year, month, day);
 		datePickerDialog.show();
 	}
-
-	// ✅ Get Current Date
-	private String getCurrentDate() {
-		SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-		return df.format(new Date());
-	}
-
-	public static boolean getDripState(){
-		return isDrip;
-	}
-
 
 	@Override
 	protected void onResume() {
 		super.onResume();
 		loadDataFromSharedPreferences(); // ✅ Refresh RecyclerView every time the page is reopened
 	}
-
-
 }

@@ -2,7 +2,7 @@ package com.nimeshkadecha.drkishan.Helper;
 
 import static android.content.Context.MODE_PRIVATE;
 
-import android.app.Activity;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -29,11 +29,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -48,29 +45,22 @@ import java.util.Set;
 
 public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.ProductViewHolder> {
 
-	private Context context;
-	private HashMap<Integer, ArrayList<String>> messageMap;
+	private final Context context;
+	private final HashMap<Integer, ArrayList<String>> messageMap;
 	private List<Integer> sortedKeys;
 
-	private List<String> productMessages;
-	private List<String> productDates;
-	private List<Double> productQuantities;
-	private List<String> productUnits;
-//	private Context context;
-	private double amount;
-	private String sharedPrefsKey = "DrKishanPrefs"; // SharedPreferences Key
-
 	private Date startDate;
-	private String startDateStr;
 
-	private double calculateAm;
-	private int interval;
-	private String userName, productName, stage, subStage;
+	private final double calculateAm;
+	private final int interval;
+	private final String userName;
+	private final String productName;
+	private final String stage;
+	private final String subStage;
 
 	public ProductDataAdapter(Context context, HashMap<Integer, ArrayList<String>> messageMap, String startDateStr, int interval,double calculateAm,String userName,String productName,String stage,String subStage) {
 		this.context = context;
 		this.messageMap = messageMap;
-		this.startDateStr = startDateStr;
 		this.calculateAm = calculateAm;
 		this.userName = userName;
 		this.productName = productName;
@@ -86,9 +76,6 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-
-
-//		Log.d("ENimesh","Date = " + startDateStr + " i =" + interval + " Size -" + sortedKeys.size() +  " mes - " + messageMap.toString() );
 	}
 
 	@NonNull
@@ -115,6 +102,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		holder.itemView.setOnClickListener(v -> showEditDialog(position, key));
 	}
 
+	@SuppressLint("NotifyDataSetChanged")
 	public void updateList(HashMap<Integer, ArrayList<String>> newMessageMap) {
 		// Create a new HashMap to store unique messages
 		HashMap<Integer, ArrayList<String>> uniqueMessageMap = new HashMap<>();
@@ -135,6 +123,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		notifyDataSetChanged();
 	}
 
+	@SuppressLint("NotifyDataSetChanged")
 	public void addMessagesToMap(int key, List<String> messages) {
 		if (!messageMap.containsKey(key)) {
 			messageMap.put(key, new ArrayList<>()); // Create key if not exists
@@ -142,7 +131,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 		// ✅ Prevent duplicates using HashSet
 		List<String> existingMessages = messageMap.get(key);
-		Set<String> uniqueMessages = new HashSet<>(existingMessages);
+		Set<String> uniqueMessages = new HashSet<>(Objects.requireNonNull(existingMessages));
 		uniqueMessages.addAll(messages); // Add only unique values
 
 		// ✅ Convert back to List and update map
@@ -151,8 +140,6 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		// ✅ Refresh sorted keys
 		sortedKeys = new ArrayList<>(messageMap.keySet());
 		Collections.sort(sortedKeys);
-
-		Log.d("ENimesh", "Updated messageMap: " + messageMap);
 
 		notifyDataSetChanged(); // Refresh RecyclerView
 	}
@@ -167,7 +154,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		double roundedValue = Math.round(value * 100.0) / 100.0; // ✅ Round to 2 decimal places
 		return String.format(Locale.US, "%.2f", roundedValue); // ✅ Always 2 decimal places
 	}
-
+	@SuppressLint("NotifyDataSetChanged")
 	private void showEditDialog(int position, int key) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(context);
 		builder.setTitle("Edit Messages");
@@ -186,7 +173,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		unitSpinner.setAdapter(arr_adapter);
 
 		// Create a copy of the message list for this key
-		List<String> dialogList = new ArrayList<>(messageMap.getOrDefault(key, new ArrayList<>()));
+		List<String> dialogList = new ArrayList<>(Objects.requireNonNull(messageMap.getOrDefault(key, new ArrayList<>())));
 
 		// Create adapter with a modified listener to remove the clicked item after setting fields.
 		final DialogMessageAdapter[] adapterRef = new DialogMessageAdapter[1];
@@ -276,43 +263,27 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		});
 		builder.create().show();
 	}
-
-
 	private void editDataLocally(int key) {
 		try {
 			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
 
-			Log.d("ENimesh", "Before Editing Data: " + savedJson);
 			JSONObject jsonObject = new JSONObject(savedJson);
-
-			Log.d("ENimesh","Found JSON " + jsonObject.has(userName) + " us" +userName);
-
 
 			// Ensure correct structure exists
 			if (!jsonObject.has(userName)) return;
 			JSONObject usersObj = jsonObject.getJSONObject(userName);
 
-			Log.d("ENimesh","Found userName");
-
 			if (!usersObj.has(productName)) return;
 			JSONObject productObj = usersObj.getJSONObject(productName);
-
-			Log.d("ENimesh","Found product");
 
 			if (!productObj.has(stage)) return;
 			JSONObject stageObj = productObj.getJSONObject(stage);
 
-			Log.d("ENimesh","Found stage");
-
 			if (!stageObj.has(subStage)) return;
 			JSONObject subStageObj = stageObj.getJSONObject(subStage);
 
-			Log.d("ENimesh","Found subStage");
-
 			if (!subStageObj.has("data")) return;
-
-			Log.d("ENimesh","Found data");
 
 			// Retrieve existing data array
 			JSONArray existingDataArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
@@ -327,14 +298,12 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			}
 
 			// Add updated messages from messageMap
-			Log.d("ENimesh","MAP mess = " + messageMap);
 			if (messageMap.containsKey(key)) {
-				for (String message : messageMap.get(key)) {
-					Log.d("ENimesh","mess = " + message);
+				for (String message : Objects.requireNonNull(messageMap.get(key))) {
 					JSONObject newMessageObj = new JSONObject();
 					String[] parts = message.split(" -- ");
 					newMessageObj.put("m", parts[0]); // Extract message text
-					newMessageObj.put("q", parts[1].replaceAll("[^\\d]", "")); // Extract quantity
+					newMessageObj.put("q", parts[1].replaceAll("\\D", "")); // Extract quantity
 					newMessageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit
 					newMessageObj.put("k", key); // Store key
 					updatedDataArray.put(newMessageObj);
@@ -350,24 +319,20 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 			// Save updated JSON to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
-//			storedData = subStageObj; // Ensure `storedData` is updated
 
 			Toast.makeText(context, "Data Edited Successfully!", Toast.LENGTH_SHORT).show();
 
 			_6_ShowAllMessages.setNeedToSave(true);
-			savedJson = prefs.getString("savedJson", "{}"); // Retrieve updated JSON
-			Log.d("ENimesh", "After Editing Data: " + savedJson);
 		} catch (JSONException e) {
 			Log.e("SharedPreferences", "Error updating JSON", e);
 			Toast.makeText(context, "Failed to edit data!", Toast.LENGTH_SHORT).show();
 		}
 	}
 
-
 	// ✅ Corrected unit conversion & number formatting
 	private String formatQuantity(double quantity, String unit) {
 		double convertedQuantity = quantity;
-		String finalUnit = unit;
+		String finalUnit;
 
 		switch (unit.toLowerCase()) {
 			case "ml":
@@ -408,59 +373,8 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		return formatNumber(convertedQuantity) + " " + finalUnit;
 	}
 
-	// ✅ Update Message in SharedPreferences
-	private void updateMessageInStorage(int position, String updatedMessage, double updatedQuantity, String updatedUnit, String updatedDate) {
-		try {
-			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
-			String savedJson = prefs.getString("savedJson", "{}");
-			JSONObject jsonObject = new JSONObject(savedJson);
-
-			if (!jsonObject.has(userName)) return;
-			JSONObject usersObj = jsonObject.getJSONObject(userName);
-
-			if (!usersObj.has(productName)) return;
-			JSONObject productObj = usersObj.getJSONObject(productName);
-
-			if (!productObj.has(stage)) return;
-			JSONObject stageObj = productObj.getJSONObject(stage);
-
-			if (!stageObj.has(subStage)) return;
-			JSONObject subStageObj = stageObj.getJSONObject(subStage);
-
-			JSONArray messagesArray = new JSONArray();
-			if (subStageObj.has("data")) {
-				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
-			}
-
-			if (position >= 0 && position < messagesArray.length()) {
-				JSONObject updatedObject = new JSONObject();
-				updatedObject.put("m", updatedMessage);
-				updatedObject.put("q", updatedQuantity / amount); // ✅ Store RAW value
-				updatedObject.put("qt", updatedUnit);
-				updatedObject.put("date", updatedDate);
-
-				messagesArray.put(position, updatedObject);
-			}
-
-			JSONObject formattedData = new JSONObject();
-			formattedData.put("value", messagesArray.toString());
-			subStageObj.put("data", formattedData);
-
-			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
-
-			productMessages.set(position, updatedMessage);
-			productQuantities.set(position, updatedQuantity); // ✅ Save RAW value in list
-			productUnits.set(position, updatedUnit);
-			productDates.set(position, updatedDate);
-
-			notifyDataSetChanged();
-			Toast.makeText(context, "Message Updated!", Toast.LENGTH_SHORT).show();
-		} catch (Exception e) {
-			Log.e("Storage", "Error updating message", e);
-		}
-	}
-
 	// ✅ Delete Message from SharedPreferences (No Changes)
+	@SuppressLint("NotifyDataSetChanged")
 	private void deleteMessageFromStorage(int position) {
 		try {
 			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
@@ -494,11 +408,6 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
-			productMessages.remove(position);
-			productQuantities.remove(position);
-			productUnits.remove(position);
-			productDates.remove(position);
-
 			notifyDataSetChanged();
 			Toast.makeText(context, "Message Deleted Successfully!", Toast.LENGTH_SHORT).show();
 		} catch (Exception e) {
@@ -508,25 +417,21 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 	private String getDate(int position){
 
-		Log.d("ENimesh","pos = "  + position);
-
 		// Calculate date dynamically instead of using a separate list
 		SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(startDate);
 		calendar.add(Calendar.DAY_OF_MONTH, position * interval);
-		String date = formatter.format(calendar.getTime());
 
-		return date;
+		return formatter.format(calendar.getTime());
 	}
 
 	public static class ProductViewHolder extends RecyclerView.ViewHolder {
 		TextView txtDate, txtMessage;
 		public ProductViewHolder(@NonNull View itemView) {
 			super(itemView);
-			txtDate = itemView.findViewById(R.id.txtProductName_d); // ✅ Check ID
-			txtMessage = itemView.findViewById(R.id.txtProductDetails); // ✅ Check ID
-//			txtQuantity = itemView.findViewById(R.id.quentity); // ✅ Check ID (should be txtQuantity)
+			txtDate = itemView.findViewById(R.id.txtProductName_d);
+			txtMessage = itemView.findViewById(R.id.txtProductDetails);
 		}
 	}
 }
