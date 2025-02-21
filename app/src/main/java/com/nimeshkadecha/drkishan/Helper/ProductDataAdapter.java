@@ -239,19 +239,34 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 		builder.setView(view);
 		builder.setPositiveButton("Save", (dialog, which) -> {
-			// If dialogList is empty, remove the key from your map and sortedKeys
 			if (dialogList.isEmpty()) {
-				messageMap.remove(key);
-				sortedKeys.remove((Integer) key);
-			} else {
-				messageMap.put(key, new ArrayList<>(dialogList));
-			}
+				// Show a confirmation dialog if dialogList is empty
+				new AlertDialog.Builder(context)
+												.setTitle("Confirm Delete")
+												.setMessage("The list is empty and the product will be deleted. Do you want to continue?")
+												.setPositiveButton("Yes", (confirmDialog, confirmWhich) -> {
 
-			editDataLocally(key);
-			Toast.makeText(context, "Updated", Toast.LENGTH_SHORT).show();
-			// Refresh the outer adapter
-			notifyDataSetChanged();
+													// Remove the product
+													messageMap.remove(key);
+													sortedKeys.remove((Integer) key);
+													editDataLocally(key);
+													Toast.makeText(context, "Updated", Toast.LENGTH_SHORT).show();
+													notifyDataSetChanged();
+												})
+												.setNegativeButton("No", (confirmDialog, confirmWhich) -> {
+													// Just dismiss the confirmation dialog
+													confirmDialog.dismiss();
+												})
+												.show();
+			} else {
+				// If the list is not empty, proceed normally
+				messageMap.put(key, new ArrayList<>(dialogList));
+				editDataLocally(key);
+				Toast.makeText(context, "Updated", Toast.LENGTH_SHORT).show();
+				notifyDataSetChanged();
+			}
 		});
+
 
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
@@ -303,7 +318,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 					JSONObject newMessageObj = new JSONObject();
 					String[] parts = message.split(" -- ");
 					newMessageObj.put("m", parts[0]); // Extract message text
-					newMessageObj.put("q", parts[1].replaceAll("\\D", "")); // Extract quantity
+					newMessageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
 					newMessageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit
 					newMessageObj.put("k", key); // Store key
 					updatedDataArray.put(newMessageObj);

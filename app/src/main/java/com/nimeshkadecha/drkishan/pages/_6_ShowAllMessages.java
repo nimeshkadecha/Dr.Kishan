@@ -136,8 +136,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (!stageObj.has(subStage)) stageObj.put(subStage, new JSONObject());
 			storedData = stageObj.getJSONObject(subStage);
 
-			// ✅ Update storedData with latest Intent values
-//			NOTE: I guess i should remove it
+
+			// ✅ Update storedData with latest Intent value
 			storedData.put("count", amount);
 			storedData.put("countingValue", unit);
 			storedData.put("date", mainDate);
@@ -507,7 +507,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 					JSONObject messageObj = new JSONObject(); // Create JSON object
 					String[] parts = message.split(" -- ");
 					messageObj.put("m", parts[0]); // Extract message
-					messageObj.put("q", parts[1].replaceAll("\\D", "")); // Extract quantity
+					messageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
 					messageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit only
 					messageObj.put("k", key); // Store 'k'
 					newMessageArray.put(messageObj);
