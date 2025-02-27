@@ -557,7 +557,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			// Append messages to mainDate directly
 			for (ArrayList<String> messages : messagesMap.values()) {
 				for (String message : messages) {
-					finalCopiedString.append("- ").append(message).append("\n");
+					finalCopiedString.append("- ").append(translateUnits(message)).append("\n");
 				}
 			}
 
@@ -577,7 +577,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				if (messages != null) {
 					StringBuilder finalCopiedString = new StringBuilder();
 					for (String message : messages) {
-						finalCopiedString.append("- ").append(message).append("\n");
+						finalCopiedString.append("- ").append(translateUnits(message)).append("\n");
 					}
 					copiedText.append(finalCopiedString).append("\n\n"); // ✅ Append Message
 				}
@@ -595,6 +595,15 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		clipboard.setPrimaryClip(clip);
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
+	}
+
+	// ✅ Function to translate units while keeping other text unchanged
+	private String translateUnits(String message) {
+		return message.replace("grams", "ગ્રામ")
+										.replace("KG", "કિલો")
+										.replace("Letter", "લિટર")
+										.replace("liter", "લિટર")
+										.replace("ML", "મિલી");
 	}
 
 	private String addDaysToDate(String startDate, int daysToAdd) {
@@ -632,7 +641,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			case "milliliter":
 				if (quantity >= 1000) {
 					convertedQuantity = quantity / 1000;
-					finalUnit = "Letter"; // Convert ML to L
+					finalUnit = "liter"; // Convert ML to L
 				} else {
 					finalUnit = "ML"; // Keep ML
 				}
@@ -656,7 +665,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			case "l":
 			case "litre":
 			case "liter":
-				finalUnit = "Letter"; // Convert L to Letter
+				finalUnit = "liter"; // Convert L to Letter
 				break;
 
 			default:

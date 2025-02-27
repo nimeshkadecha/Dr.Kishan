@@ -354,7 +354,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			case "milliliter":
 				if (quantity >= 1000) {
 					convertedQuantity = quantity / 1000;
-					finalUnit = "Letter"; // Convert ML to L
+					finalUnit = "liter"; // Convert ML to L
 				} else {
 					finalUnit = "ML"; // Keep ML
 				}
@@ -378,7 +378,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			case "l":
 			case "litre":
 			case "liter":
-				finalUnit = "Letter"; // Convert L to Letter
+				finalUnit = "liter"; // Convert L to Letter
 				break;
 
 			default:
