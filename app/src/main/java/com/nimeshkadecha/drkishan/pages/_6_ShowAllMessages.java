@@ -158,7 +158,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 					String qt = obj.getString("qt");
 
 					String formattedQuantity = formatQuantity(q, qt);
-					String formattedMessage = message + " -- " + formattedQuantity;
+					String formattedMessage = message + " - " + formattedQuantity;
 
 					messagesMap.computeIfAbsent(k, key -> new ArrayList<>()).add(formattedMessage);
 				}
@@ -249,7 +249,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			}
 
 			// ✅ Correctly add message to `dialogList`
-			String entry = newMessage + " -- " + formattedQuantity;
+			String entry = newMessage + " - " + formattedQuantity;
 
 			if (!dialogList.contains(entry)) {
 				dialogList.add(entry);
@@ -365,7 +365,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				ArrayList<String> messages = entry.getValue();
 				for (String messageEntry : messages) {
 					// We expect the editing format "message -- quantity unit"
-					String[] parts = messageEntry.split(" -- ");
+					String[] parts = messageEntry.split(" - ");
 					if (parts.length < 2) {
 						Log.e("ENimesh", "Unexpected message format: " + messageEntry);
 						continue;
@@ -505,7 +505,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (messagesMap.containsKey(key)) {
 				for (String message : Objects.requireNonNull(messagesMap.get(key))) {
 					JSONObject messageObj = new JSONObject(); // Create JSON object
-					String[] parts = message.split(" -- ");
+					String[] parts = message.split(" - ");
 					messageObj.put("m", parts[0]); // Extract message
 					messageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
 					messageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit only

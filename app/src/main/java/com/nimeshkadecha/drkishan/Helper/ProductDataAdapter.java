@@ -220,7 +220,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 				return;
 			}
 
-			String entry = newMessage + " -- " + formattedQuantity;
+			String entry = newMessage + " - " + formattedQuantity;
 
 			// Check if entry already exists in dialogList
 			int editIndex = dialogList.indexOf(entry);
@@ -316,7 +316,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			if (messageMap.containsKey(key)) {
 				for (String message : Objects.requireNonNull(messageMap.get(key))) {
 					JSONObject newMessageObj = new JSONObject();
-					String[] parts = message.split(" -- ");
+					String[] parts = message.split(" - ");
 					newMessageObj.put("m", parts[0]); // Extract message text
 					newMessageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
 					newMessageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit
