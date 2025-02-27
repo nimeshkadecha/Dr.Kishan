@@ -39,38 +39,41 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 	@SuppressLint("NotifyDataSetChanged")
 	@Override
 	public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
+		if (position >= dialogList.size()) {
+			return; // Prevent accessing an invalid index
+		}
+
 		String item = dialogList.get(position);
 		holder.tvMessage.setText(item);
 
 		holder.itemView.setOnClickListener(v -> {
-
 			if (listener != null) {
-				String[] parts = item.split(" -- ");
+				String[] parts = item.split(" - ");
 				if (parts.length == 2) {
 					String message = parts[0];
 					String quantity = parts[1].replaceAll("[^\\d.]", ""); // Extract numeric part including decimal
 					String unit = parts[1].replace(quantity, "").trim(); // Extract unit by removing quantity
 
-					Log.d("ENimesh", "Extracted - Message: " + message + ", Quantity: " + quantity + ", Unit: " + unit);
-
 					listener.onItemClick(message, quantity, unit);
+				}
 
-					dialogList.remove(position); // Remove item from the list
+				if (position < dialogList.size()) {  // Ensure position is still valid before removing
+					dialogList.remove(position);
 					notifyDataSetChanged(); // Refresh RecyclerView
 				}
 			}
 		});
 
 		holder.itemView.setOnLongClickListener(view -> {
-
-			dialogList.remove(position);
-			notifyDataSetChanged();
-			Toast.makeText(view.getContext(), "Removed", Toast.LENGTH_SHORT).show();
-			return false;
-
+			if (position < dialogList.size()) { // Prevent invalid index
+				dialogList.remove(position);
+				notifyDataSetChanged();
+				Toast.makeText(view.getContext(), "Removed", Toast.LENGTH_SHORT).show();
+			}
+			return true; // Ensures long press action is handled properly
 		});
-
 	}
+
 
 	@Override
 	public int getItemCount() {

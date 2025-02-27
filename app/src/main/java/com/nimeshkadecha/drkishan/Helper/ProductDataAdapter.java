@@ -156,6 +156,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	}
 	@SuppressLint("NotifyDataSetChanged")
 	private void showEditDialog(int position, int key) {
+
 		AlertDialog.Builder builder = new AlertDialog.Builder(context);
 		builder.setTitle("Edit Messages");
 
