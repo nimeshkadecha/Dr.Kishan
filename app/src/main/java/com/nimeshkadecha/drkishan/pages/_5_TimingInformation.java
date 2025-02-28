@@ -116,15 +116,11 @@ public class _5_TimingInformation extends AppCompatActivity {
 			if (b) {
 				amount.setText("1");
 				spinner.setSelection(0);
-				days.setText("0");
-				findViewById(R.id.textInputLayoutName).setVisibility(View.INVISIBLE);
 				findViewById(R.id.textInputLayoutAMo).setVisibility(View.INVISIBLE);
 				spinner.setVisibility(View.INVISIBLE);
 			} else {
 				amount.setText(o_amo);
 				spinner.setSelection(o_position);
-//				days.setText(o_days);
-//				findViewById(R.id.textInputLayoutName).setVisibility(View.VISIBLE);
 				findViewById(R.id.textInputLayoutAMo).setVisibility(View.VISIBLE);
 				spinner.setVisibility(View.VISIBLE);
 			}
@@ -134,8 +130,6 @@ public class _5_TimingInformation extends AppCompatActivity {
 		if(isDrip){
 			amount.setText("1");
 			spinner.setSelection(0);
-//			days.setText("0");
-//			findViewById(R.id.textInputLayoutName).setVisibility(View.INVISIBLE);
 			findViewById(R.id.textInputLayoutAMo).setVisibility(View.INVISIBLE);
 			spinner.setVisibility(View.INVISIBLE);
 		}
