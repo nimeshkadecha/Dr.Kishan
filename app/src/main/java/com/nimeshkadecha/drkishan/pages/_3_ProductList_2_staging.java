@@ -1,6 +1,7 @@
 package com.nimeshkadecha.drkishan.pages;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -11,8 +12,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -61,7 +64,82 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		loadStagesFromPrefs();
 
 		findViewById(R.id.btnStageProduct).setOnClickListener(view -> showAddStageDialog());
+
+		ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+										ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.START | ItemTouchHelper.END,
+										ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT // ✅ Enable swipe
+		) {
+			@Override
+			public boolean onMove(@NonNull RecyclerView recyclerView,
+			                      @NonNull RecyclerView.ViewHolder viewHolder,
+			                      @NonNull RecyclerView.ViewHolder target) {
+				int fromPosition = viewHolder.getAdapterPosition();
+				int toPosition = target.getAdapterPosition();
+
+				// ✅ Call adapter method to swap items
+				adapter.onItemMove(fromPosition, toPosition);
+				return true;
+			}
+
+			@Override
+			public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+				int position = viewHolder.getAdapterPosition();
+				String stageName = stageList.get(position); // Get the stage name
+				Context context = viewHolder.itemView.getContext();
+
+				// ✅ Call edit/delete dialog
+				adapter.onItemSwipe(position);
+
+				// Prevent automatic deletion by refreshing item
+				adapter.notifyItemChanged(position);
+			}
+
+			@Override
+			public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+				super.clearView(recyclerView, viewHolder);
+
+				// ✅ Update order in SharedPreferences after drag-and-drop
+				updateStageOrder(new ArrayList<>(stageList));
+			}
+		});
+
+// ✅ Attach to RecyclerView
+		itemTouchHelper.attachToRecyclerView(recyclerView);
+
 	}
+
+	private void updateStageOrder(List<String> newOrder) {
+		String jsonString = getJsonFromPrefs();
+
+		try {
+			JSONObject json = new JSONObject(jsonString);
+			if (!json.has(userName) || !json.getJSONObject(userName).has(productName)) return;
+
+			JSONObject productJson = json.getJSONObject(userName).getJSONObject(productName);
+			JSONObject newProductJson = new JSONObject();
+
+			// ✅ Rename keys based on new order
+			for (int i = 0; i < newOrder.size(); i++) {
+				String oldKey = newOrder.get(i); // Example: "3@StageName"
+				int newNumber = i + 1; // New position (1-based index)
+				String newKey = newNumber + "@" + oldKey.split("@", 2)[1]; // Preserve stage name
+
+				if (productJson.has(oldKey)) {
+					newProductJson.put(newKey, productJson.getJSONObject(oldKey));
+				}
+			}
+
+			// ✅ Replace old data with new sorted data
+			json.getJSONObject(userName).put(productName, newProductJson);
+
+			// ✅ Save back to SharedPreferences
+			saveJsonToPrefs(json.toString());
+
+		} catch (JSONException e) {
+			Log.e("SharedPrefs", "Error updating stage order", e);
+		}
+	}
+
 
 	/** ✅ Load Stages from SharedPreferences */
 	@SuppressLint("NotifyDataSetChanged")

@@ -1,5 +1,7 @@
 package com.nimeshkadecha.drkishan.Helper;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -115,21 +117,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 		// ✅ Long-click for deletion
 		holder.txtItem.setOnLongClickListener(v -> {
-			showEditDeleteDialog(v.getContext(), position, rawItem);
+//			showEditDeleteDialog(v.getContext(), position, rawItem);
 			return true;
 		});
 
-	}
-
-	private int getNextNumber() {
-		int maxNumber = 0;
-		for (String item : itemList) {
-			int number = extractNumber(item);
-			if (number > maxNumber) {
-				maxNumber = number;
-			}
-		}
-		return maxNumber + 1;
 	}
 
 	private int extractNumber(String item) {
@@ -163,7 +154,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	private void deleteItemFromStorage(Context context, int position, String itemToDelete) {
 		try {
 			// ✅ Fetch SharedPreferences
-			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", Context.MODE_PRIVATE);
+			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}"); // Default empty JSON
 			JSONObject jsonObject = new JSONObject(savedJson);
 
@@ -264,7 +255,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	private void updateItemInStorage(Context context, int position, String oldName, String newName) {
 		try {
 			// ✅ Fetch SharedPreferences
-			SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+			SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}");
 			JSONObject jsonObject = new JSONObject(savedJson);
 
@@ -318,21 +309,101 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 		if (adapterType == AdapterType.PRODUCTS) {
 			reference.child(oldName).get().addOnSuccessListener(dataSnapshot -> {
-				reference.child(newName).setValue(dataSnapshot.getValue()); // ✅ Copy old data
-				reference.child(oldName).removeValue(); // ✅ Remove old entry
+				if (dataSnapshot.exists()) {
+					reference.child(newName).setValue(dataSnapshot.getValue());
+					reference.child(oldName).removeValue(); // ✅ Remove only if copied successfully
+				}
 			});
 		} else if (adapterType == AdapterType.STAGES) {
 			reference.child(productName).child(oldName).get().addOnSuccessListener(dataSnapshot -> {
-				reference.child(productName).child(newName).setValue(dataSnapshot.getValue());
-				reference.child(productName).child(oldName).removeValue();
+				if (dataSnapshot.exists()) {
+					reference.child(productName).child(newName).setValue(dataSnapshot.getValue());
+					reference.child(productName).child(oldName).removeValue();
+				}
 			});
 		} else if (adapterType == AdapterType.SUB_STAGES) {
 			reference.child(productName).child(stage).child(oldName).get().addOnSuccessListener(dataSnapshot -> {
-				reference.child(productName).child(stage).child(newName).setValue(dataSnapshot.getValue());
-				reference.child(productName).child(stage).child(oldName).removeValue();
+				if (dataSnapshot.exists()) {
+					reference.child(productName).child(stage).child(newName).setValue(dataSnapshot.getValue());
+					reference.child(productName).child(stage).child(oldName).removeValue();
+				}
 			});
 		}
 	}
 
+
+	public void onItemMove(int fromPosition, int toPosition) {
+		if (fromPosition < toPosition) {
+			for (int i = fromPosition; i < toPosition; i++) {
+				Collections.swap(itemList, i, i + 1);
+			}
+		} else {
+			for (int i = fromPosition; i > toPosition; i--) {
+				Collections.swap(itemList, i, i - 1);
+			}
+		}
+
+		// ✅ Rename items and update storage after reordering
+		renameAndSaveItems();
+
+		notifyItemMoved(fromPosition, toPosition);
+	}
+
+	public void onItemSwipe(int position) {
+		showEditDeleteDialog(context, position, itemList.get(position));
+	}
+	private void renameAndSaveItems() {
+		try {
+			SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+			String savedJson = prefs.getString("savedJson", "{}");
+			JSONObject jsonObject = new JSONObject(savedJson);
+
+			if (!jsonObject.has(userName)) return;
+
+			JSONObject userJson = jsonObject.getJSONObject(userName);
+
+			// ✅ If renaming Stages, work within the correct Product
+			JSONObject productJson = (adapterType == AdapterType.STAGES && userJson.has(productName))
+											? userJson.getJSONObject(productName) : userJson;
+
+			JSONObject updatedJson = new JSONObject(); // New ordered JSON
+
+			for (int i = 0; i < itemList.size(); i++) {
+				String oldKey = itemList.get(i);
+				String newKey = (i + 1) + "@" + extractItemName(oldKey);
+
+				// ✅ Deep Copy Entire Structure (Prevents Data Loss)
+				if (productJson.has(oldKey)) {
+					JSONObject stageData = productJson.getJSONObject(oldKey);
+					JSONObject copiedStageData = new JSONObject(stageData.toString()); // Copy all sub-stages
+
+					updatedJson.put(newKey, copiedStageData);
+				}
+
+				// ✅ Update Firebase (Moves Data to New Key)
+				updateFirebase(oldKey, newKey);
+
+				// ✅ Rename in local list
+				itemList.set(i, newKey);
+			}
+
+			// ✅ Save updated JSON back to SharedPreferences
+			if (adapterType == AdapterType.STAGES) {
+				userJson.put(productName, updatedJson);
+			} else {
+				jsonObject.put(userName, updatedJson);
+			}
+
+			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+
+			// ✅ Debugging Log
+			Log.d("ENimesh", "Updated Data - " + prefs.getString("savedJson", "{}"));
+
+			notifyDataSetChanged();
+
+		} catch (JSONException e) {
+			Log.e("RenameError", "Error renaming stages", e);
+		}
+	}
 
 }

@@ -14,8 +14,10 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -35,17 +37,6 @@ import java.util.regex.Pattern;
 public class _2_ProductList_1_main extends AppCompatActivity {
 
 	android.app.AlertDialog.Builder alert;
-
-	private boolean isInternetAvailable() {
-		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-		if (cm != null) {
-			NetworkCapabilities capabilities = cm.getNetworkCapabilities(cm.getActiveNetwork());
-			return capabilities != null &&
-											(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-																			capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR));
-		}
-		return false;
-	}
 
 	private ProductAdapter adapter;
 	private final List<String> productList = new ArrayList<>();
@@ -70,9 +61,76 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 
 		findViewById(R.id.btnAddProduct).setOnClickListener(view -> showAddProductDialog());
 		findViewById(R.id.button2_logOut).setOnClickListener(view -> logoutUser());
+
+		ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+										ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.START | ItemTouchHelper.END,
+										ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT // ✅ Enable swipe actions
+		){
+			@Override
+			public boolean onMove(@NonNull RecyclerView recyclerView,
+			                      @NonNull RecyclerView.ViewHolder viewHolder,
+			                      @NonNull RecyclerView.ViewHolder target) {
+				int fromPosition = viewHolder.getAdapterPosition();
+				int toPosition = target.getAdapterPosition();
+
+				// ✅ Call the method inside the adapter!
+				adapter.onItemMove(fromPosition, toPosition);
+				return true;
+			}
+
+			@Override
+			public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+				int position = viewHolder.getAdapterPosition();
+				// Call showEditDeleteDialog from the adapter
+				adapter.onItemSwipe(position);
+
+				// Notify adapter to prevent item deletion
+				adapter.notifyItemChanged(position);
+			}
+
+			@Override
+			public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+				super.clearView(recyclerView, viewHolder);
+
+				// After dragging, rename items in sorted order
+				updateProductOrder(new ArrayList<>(productList));
+			}
+		});
+
+		itemTouchHelper.attachToRecyclerView(recyclerView);
+
+	}
+	private void updateProductOrder(List<String> newOrder) {
+		String jsonString = sharedPreferences.getString("savedJson", "{}");
+
+		try {
+			JSONObject json = new JSONObject(jsonString);
+			if (!json.has(userName)) return;
+
+			JSONObject userJson = json.getJSONObject(userName);
+			JSONObject newUserJson = new JSONObject(); // New JSON to store updated order
+
+			// Iterate through new order and rename keys properly
+			for (int i = 0; i < newOrder.size(); i++) {
+				String oldKey = newOrder.get(i);  // Example: "4@item4"
+				int newNumber = i + 1;  // New position (1-based index)
+				String newKey = newNumber + "@" + oldKey.split("@", 2)[1]; // Renaming while keeping the name
+
+				if (userJson.has(oldKey)) {
+					newUserJson.put(newKey, userJson.getJSONObject(oldKey)); // Preserve old data
+				}
+			}
+
+			// Replace user's JSON data with the new ordered structure
+			json.put(userName, newUserJson);
+
+			// Save back to SharedPreferences
+			sharedPreferences.edit().putString("savedJson", json.toString()).apply();
+		} catch (JSONException e) {
+			Log.e("SharedPrefs", "Error updating product order in JSON", e);
+		}
 	}
 
-	/** ✅ Load Products from SharedPreferences */
 	@SuppressLint("NotifyDataSetChanged")
 	private void loadProductsFromPrefs() {
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
@@ -98,8 +156,6 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 			Log.e("SharedPrefs", "Error parsing JSON from SharedPreferences", e);
 		}
 	}
-
-	/** ✅ Show Dialog to Add Product */
 
 	private void showAddProductDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -135,9 +191,6 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		});
 	}
 
-
-	/** ✅ Add Product to SharedPreferences */
-
 	private void addProductToPrefs(String productName) {
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
 
@@ -162,7 +215,6 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		}
 	}
 
-	/** ✅ Logout User */
 	private void logoutUser() {
 		sharedPreferences.edit().clear().apply();
 		startActivity(new Intent(this, _1_LoginPage.class));
@@ -188,15 +240,6 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		return 0;
 	}
 
-	private void showNoInternetDialog() {
-		new AlertDialog.Builder(this)
-										.setTitle("No Internet Connection")
-										.setMessage("Please check your internet and try again.")
-										.setPositiveButton("Retry", (dialog, which) -> loadProductsFromPrefs())
-										.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-										.show();
-	}
-
 	//  Alert dialog box for Exiting Application ======================================================
 	@SuppressLint("MissingSuperCall")
 	@Override
@@ -211,6 +254,5 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 			alert.show();
 
 	}
-
 
 }
