@@ -283,6 +283,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 		gotoFinalStep.putExtra("days", days.getText().toString());
 		gotoFinalStep.putExtra("amount", amount.getText().toString());
 		gotoFinalStep.putExtra("unit", spinner.getSelectedItem().toString());
+		gotoFinalStep.putExtra("isDrip", isDrip);
 
 		startActivity(gotoFinalStep);
 	}

@@ -56,6 +56,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 	static boolean needToSave = false;
 
+	private boolean isDrip = false;
+
 	private double calculateAm;
 	private int interval;
 
@@ -78,6 +80,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		mainDate = getIntent().getStringExtra("date");
 		amount = Double.parseDouble(Objects.requireNonNull(getIntent().getStringExtra("amount")));
 		unit = getIntent().getStringExtra("unit");
+		isDrip = getIntent().getBooleanExtra("isDrip", false);
 		if(unit != null && unit.equalsIgnoreCase("Vigha")){
 			calculateAm = amount;
 		}else{
@@ -97,7 +100,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		messagesMap = new HashMap<>();
 
-		adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval,calculateAm,userName,productName,stage,subStage);
+		adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval,calculateAm,userName,productName,stage,subStage,isDrip);
 
 		recyclerView.setAdapter(adapter); // ✅ Set adapter after loading data
 
@@ -152,13 +155,16 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 				for (int i = 0; i < messagesArray.length(); i++) {
 					JSONObject obj = messagesArray.getJSONObject(i);
-					int k = obj.getInt("k");
-					String message = obj.getString("m");
-					double q = obj.getDouble("q") * calculateAm;
-					String qt = obj.getString("qt");
+					String formattedMessage;
 
-					String formattedQuantity = formatQuantity(q, qt);
-					String formattedMessage = message + " - " + formattedQuantity;
+					int k = obj.getInt("k");
+					formattedMessage = obj.getString("m");
+					if (!isDrip) {
+						double q = obj.getDouble("q") * calculateAm;
+						String qt = obj.getString("qt");
+						String formattedQuantity = formatQuantity(q, qt);
+						formattedMessage += " - " + formattedQuantity;
+					}
 
 					messagesMap.computeIfAbsent(k, key -> new ArrayList<>()).add(formattedMessage);
 				}
@@ -167,7 +173,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 					if (adapter != null) {
 						adapter.updateList(messagesMap);
 					} else {
-						adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval,calculateAm,userName,productName,stage,subStage);
+						adapter = new ProductDataAdapter(this, messagesMap,mainDate,interval,calculateAm,userName,productName,stage,subStage,isDrip);
 						recyclerView.setAdapter(adapter);
 					}
 						adapter.notifyDataSetChanged();
@@ -192,23 +198,36 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		Button addMsg = view.findViewById(R.id.addMsg);
 		RecyclerView recyclerViewMessages = view.findViewById(R.id.recyclerViewMessages);
 
-		ArrayAdapter<CharSequence> arr_adapter = ArrayAdapter.createFromResource(this, R.array.unit_options, android.R.layout.simple_spinner_item);
-		arr_adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		unitSpinner.setAdapter(arr_adapter);
+		// ✅ Hide quantity and unit if `isDrip` is true
+		if (isDrip) {
+			etProductQuantity.setVisibility(View.GONE);
+			unitSpinner.setVisibility(View.GONE);
+		} else {
+			etProductQuantity.setVisibility(View.VISIBLE);
+			unitSpinner.setVisibility(View.VISIBLE);
+
+			// ✅ Populate Spinner if `isDrip` is false
+			ArrayAdapter<CharSequence> arr_adapter = ArrayAdapter.createFromResource(this, R.array.unit_options, android.R.layout.simple_spinner_item);
+			arr_adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+			unitSpinner.setAdapter(arr_adapter);
+		}
 
 		List<String> dialogList = new ArrayList<>();
 		DialogMessageAdapter dialogAdapter = new DialogMessageAdapter(dialogList, (message, quantity, unit) -> {
 			etProductMessage.setText(message);
-			etProductQuantity.setText(quantity);
+			if (!isDrip) {
+				etProductQuantity.setText(quantity);
 
-			// ✅ Set spinner selection dynamically
-			for (int i = 0; i < unitSpinner.getAdapter().getCount(); i++) {
-				if (unitSpinner.getAdapter().getItem(i).toString().equalsIgnoreCase(unit)) {
-					unitSpinner.setSelection(i);
-					break;
+				// ✅ Set spinner selection dynamically
+				for (int i = 0; i < unitSpinner.getAdapter().getCount(); i++) {
+					if (unitSpinner.getAdapter().getItem(i).toString().equalsIgnoreCase(unit)) {
+						unitSpinner.setSelection(i);
+						break;
+					}
 				}
 			}
 		});
+
 		recyclerViewMessages.setAdapter(dialogAdapter);
 		recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
 
@@ -216,13 +235,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		Calendar calendar = Calendar.getInstance();
 
 		try {
-			// Use the starting date from intent
 			calendar.setTime(Objects.requireNonNull(sdf.parse(mainDate)));
-
-			// Calculate the next date based on the number of distinct keys in messageMap
-			int numberOfKeys = messagesMap.size(); // Number of distinct 'k'
+			int numberOfKeys = messagesMap.size();
 			int totalDaysToAdd = numberOfKeys * interval;
-
 			calendar.add(Calendar.DAY_OF_MONTH, totalDaysToAdd);
 		} catch (ParseException e) {
 			e.printStackTrace();
@@ -232,24 +247,26 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		addMsg.setOnClickListener(v -> {
 			String newMessage = etProductMessage.getText().toString().trim();
-			String selectedUnit = unitSpinner.getSelectedItem().toString();
-
 			if (newMessage.isEmpty()) {
 				Toast.makeText(this, "Message cannot be empty!", Toast.LENGTH_SHORT).show();
 				return;
 			}
 
-			String formattedQuantity;
-			try {
-				double newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim()) * calculateAm;
-				formattedQuantity = formatQuantity(newQuantity,selectedUnit);
-			} catch (NumberFormatException e) {
-				Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
-				return;
+			String entry;
+				entry = newMessage;
+			if (!isDrip) {
+				// ✅ Include quantity and unit if `isDrip` is false
+				String selectedUnit = unitSpinner.getSelectedItem().toString();
+				String formattedQuantity;
+				try {
+					double newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim()) * calculateAm;
+					formattedQuantity = formatQuantity(newQuantity, selectedUnit);
+				} catch (NumberFormatException e) {
+					Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
+					return;
+				}
+				entry += " - " + formattedQuantity;
 			}
-
-			// ✅ Correctly add message to `dialogList`
-			String entry = newMessage + " - " + formattedQuantity;
 
 			if (!dialogList.contains(entry)) {
 				dialogList.add(entry);
@@ -260,7 +277,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 			// ✅ Clear input fields after adding
 			etProductMessage.setText("");
-			etProductQuantity.setText("");
+			if (!isDrip) {
+				etProductQuantity.setText("");
+			}
 		});
 
 		builder.setView(view);
@@ -270,28 +289,18 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				return;
 			}
 
-			// ✅ Auto-increment "k" correctly
 			int newKey = messagesMap.isEmpty() ? 1 : Collections.max(messagesMap.keySet()) + 1;
-
-			// ✅ Add new messages directly to `messagesMap`
 			messagesMap.put(newKey, new ArrayList<>(dialogList));
-
-			// ✅ Update RecyclerView through adapter
 			adapter.addMessagesToMap(newKey, new ArrayList<>(dialogList));
-
-			// ✅ Ensure RecyclerView refreshes
 			adapter.notifyDataSetChanged();
-
-			// ✅ Pass `newKey` to `addDataLocally()`
 			addDataLocally(newKey);
-
-
 		});
 
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
 		builder.create().show();
 	}
+
 
 	// ✅ Copy Functionality
 	private void showCopyDialog() {
@@ -507,8 +516,10 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 					JSONObject messageObj = new JSONObject(); // Create JSON object
 					String[] parts = message.split(" - ");
 					messageObj.put("m", parts[0]); // Extract message
-					messageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
-					messageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit only
+					if(!isDrip){
+						messageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
+						messageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit only
+					}
 					messageObj.put("k", key); // Store 'k'
 					newMessageArray.put(messageObj);
 				}

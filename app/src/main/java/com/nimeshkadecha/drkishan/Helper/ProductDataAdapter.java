@@ -58,7 +58,9 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 	private final String stage;
 	private final String subStage;
 
-	public ProductDataAdapter(Context context, HashMap<Integer, ArrayList<String>> messageMap, String startDateStr, int interval,double calculateAm,String userName,String productName,String stage,String subStage) {
+	private boolean isDrip = false;
+
+	public ProductDataAdapter(Context context, HashMap<Integer, ArrayList<String>> messageMap, String startDateStr, int interval,double calculateAm,String userName,String productName,String stage,String subStage, boolean isDrip) {
 		this.context = context;
 		this.messageMap = messageMap;
 		this.calculateAm = calculateAm;
@@ -66,6 +68,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		this.productName = productName;
 		this.stage = stage;
 		this.subStage = subStage;
+		this.isDrip = isDrip;
 		this.sortedKeys = new ArrayList<>(messageMap.keySet());
 		Collections.sort(this.sortedKeys); // Sort keys in ascending order
 
