@@ -172,6 +172,13 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		RecyclerView recyclerViewMessages = view.findViewById(R.id.recyclerViewMessages);
 		recyclerViewMessages.setLayoutManager(new LinearLayoutManager(context));
 
+		// Hide quantity and spinner if isDrip is true
+		if (isDrip) {
+			etProductQuantity.setVisibility(View.GONE);
+			unitSpinner.setVisibility(View.GONE);
+		}
+
+
 		ArrayAdapter<CharSequence> arr_adapter = ArrayAdapter.createFromResource(context, R.array.unit_options, android.R.layout.simple_spinner_item);
 		arr_adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		unitSpinner.setAdapter(arr_adapter);
@@ -181,7 +188,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 		// Create adapter with a modified listener to remove the clicked item after setting fields.
 		final DialogMessageAdapter[] adapterRef = new DialogMessageAdapter[1];
-		adapterRef[0] = new DialogMessageAdapter(dialogList, (message, quantity, unit) -> {
+		adapterRef[0] = new DialogMessageAdapter(isDrip, dialogList, (message, quantity, unit) -> {
 			// Set the fields with the item's details
 			etProductMessage.setText(message);
 			etProductQuantity.setText(quantity);
@@ -216,15 +223,18 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 				return;
 			}
 
-			String formattedQuantity;
-			try {
-				double newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim())*calculateAm;
-				formattedQuantity = formatQuantity(newQuantity,selectedUnit);
-			} catch (NumberFormatException e) {
-				return;
+			String entry;
+			entry = newMessage; // Only store the message without quantity and unit
+			if (!isDrip) {
+				String formattedQuantity;
+				try {
+					double newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim()) * calculateAm;
+					formattedQuantity = formatQuantity(newQuantity, selectedUnit);
+				} catch (NumberFormatException e) {
+					return;
+				}
+				entry += " - " + formattedQuantity;
 			}
-
-			String entry = newMessage + " - " + formattedQuantity;
 
 			// Check if entry already exists in dialogList
 			int editIndex = dialogList.indexOf(entry);
@@ -238,7 +248,9 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 			// Clear fields after adding/updating
 			etProductMessage.setText("");
+			if (!isDrip) {
 			etProductQuantity.setText("");
+			}
 		});
 
 		builder.setView(view);
@@ -282,6 +294,7 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 		});
 		builder.create().show();
 	}
+
 	private void editDataLocally(int key) {
 		try {
 			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
@@ -322,8 +335,10 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 					JSONObject newMessageObj = new JSONObject();
 					String[] parts = message.split(" - ");
 					newMessageObj.put("m", parts[0]); // Extract message text
+					if (!isDrip) {
 					newMessageObj.put("q", parts[1].replaceAll("[^\\d.]", ""));
 					newMessageObj.put("qt", parts[1].replaceAll("[^a-zA-Z]", "")); // Extract unit
+					}
 					newMessageObj.put("k", key); // Store key
 					updatedDataArray.put(newMessageObj);
 				}

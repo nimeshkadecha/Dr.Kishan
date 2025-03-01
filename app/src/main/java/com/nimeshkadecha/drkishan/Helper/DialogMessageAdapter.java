@@ -19,14 +19,17 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 	private final List<String> dialogList;
 	private final OnItemClickListener listener;
 
+	private boolean isDrip = false;
+
 	// Interface for item click listener
 	public interface OnItemClickListener {
 		void onItemClick(String message, String quantity, String unit);
 	}
 
-	public DialogMessageAdapter(List<String> dialogList, OnItemClickListener listener) {
+	public DialogMessageAdapter(boolean isDrip, List<String> dialogList, OnItemClickListener listener) {
 		this.dialogList = dialogList;
 		this.listener = listener;
+		this.isDrip = isDrip;
 	}
 
 	@NonNull
@@ -48,21 +51,26 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 
 		holder.itemView.setOnClickListener(v -> {
 			if (listener != null) {
-				String[] parts = item.split(" - ");
-				if (parts.length == 2) {
-					String message = parts[0];
-					String quantity = parts[1].replaceAll("[^\\d.]", ""); // Extract numeric part including decimal
-					String unit = parts[1].replace(quantity, "").trim(); // Extract unit by removing quantity
+				if (isDrip) {
+					listener.onItemClick(item, "", ""); // No quantity or unit when isDrip is true
+				} else {
+					String[] parts = item.split(" - ");
+					if (parts.length == 2) {
+						String message = parts[0];
+						String quantity = parts[1].replaceAll("[^\\d.]", ""); // Extract numeric part
+						String unit = parts[1].replace(quantity, "").trim(); // Extract unit
 
-					listener.onItemClick(message, quantity, unit);
+						listener.onItemClick(message, quantity, unit);
+					}
 				}
 
-				if (position < dialogList.size()) {  // Ensure position is still valid before removing
+				if (position < dialogList.size()) {
 					dialogList.remove(position);
-					notifyDataSetChanged(); // Refresh RecyclerView
+					notifyDataSetChanged();
 				}
 			}
 		});
+
 
 		holder.itemView.setOnLongClickListener(view -> {
 			if (position < dialogList.size()) { // Prevent invalid index

@@ -213,7 +213,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		}
 
 		List<String> dialogList = new ArrayList<>();
-		DialogMessageAdapter dialogAdapter = new DialogMessageAdapter(dialogList, (message, quantity, unit) -> {
+		DialogMessageAdapter dialogAdapter = new DialogMessageAdapter(isDrip, dialogList, (message, quantity, unit) -> {
 			etProductMessage.setText(message);
 			if (!isDrip) {
 				etProductQuantity.setText(quantity);
@@ -342,7 +342,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 	private String getSavedText(String key) {
 		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).getString(key, ""); // Default: empty string
 	}
-
 	private void uploadDataToFirebase() {
 		DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
 
@@ -373,33 +372,33 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				int key = entry.getKey();
 				ArrayList<String> messages = entry.getValue();
 				for (String messageEntry : messages) {
-					// We expect the editing format "message -- quantity unit"
+					// Split the message format "message - quantity unit"
 					String[] parts = messageEntry.split(" - ");
-					if (parts.length < 2) {
+					if (parts.length < 2 && !isDrip) {
 						Log.e("ENimesh", "Unexpected message format: " + messageEntry);
 						continue;
 					}
-					String messageText = parts[0].trim();
-					String qtyUnit = parts[1].trim();
-					// Extract quantity and unit using regex (adjust if necessary)
-					String quantityStr = qtyUnit.replaceAll("[^\\d.]", "").trim();
-					String unitStr = qtyUnit.replaceAll("[\\d.]", "").trim();
 
 					JSONObject messageObj = new JSONObject();
-					messageObj.put("m", messageText);
+					messageObj.put("m", parts[0].trim()); // Store message
+					messageObj.put("k", key); // Store key
 
-					// Assuming you want to store the original quantity,
-					// if you have a conversion factor (amount), adjust as needed.
-					double quantityValue = 0;
-					try {
-						quantityValue = Double.parseDouble(quantityStr);
-					} catch (NumberFormatException e) {
-						Log.e("ENimesh", "Failed to parse quantity: " + quantityStr, e);
+					if (!isDrip) { // Only add quantity & unit if isDrip is false
+						String qtyUnit = parts[1].trim();
+						String quantityStr = qtyUnit.replaceAll("[^\\d.]", "").trim(); // Extract number
+						String unitStr = qtyUnit.replaceAll("[\\d.]", "").trim(); // Extract unit
+
+						double quantityValue = 0;
+						try {
+							quantityValue = Double.parseDouble(quantityStr);
+						} catch (NumberFormatException e) {
+							Log.e("ENimesh", "Failed to parse quantity: " + quantityStr, e);
+						}
+
+						double originalQuantity = quantityValue / amount; // Adjust based on `amount`
+						messageObj.put("q", originalQuantity);
+						messageObj.put("qt", unitStr);
 					}
-					double originalQuantity = quantityValue / amount; // adjust if necessary
-					messageObj.put("q", originalQuantity);
-					messageObj.put("qt", unitStr);
-					messageObj.put("k", key); // store the key if needed
 
 					messagesArray.put(messageObj);
 				}
@@ -408,8 +407,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			// ✅ Replace the data field with the new messages array (stored as JSON string)
 			subStageObject.put("data", messagesArray.toString());
 
-			// ✅ Update other fields: count, countingValue, date, interval
-			String[] keysToFix = {"count", "countingValue", "date", "interval","isDrip"};
+			// ✅ Update other fields: count, countingValue, date, interval, isDrip
+			String[] keysToFix = {"count", "countingValue", "date", "interval", "isDrip"};
 			for (String key : keysToFix) {
 				if (subStageObject.has(key)) {
 					Object valueObj = subStageObject.get(key);
@@ -431,7 +430,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 							subStageObject.put(key, totalMessages);
 							break;
 						case "countingValue":
-							subStageObject.put(key, unit);
+							subStageObject.put(key, isDrip ? "" : unit); // Empty if isDrip is true
 							break;
 						case "date":
 							subStageObject.put(key, mainDate);
@@ -440,11 +439,12 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 							subStageObject.put(key, interval);
 							break;
 						case "isDrip":
-							subStageObject.put("isDrip", false);
+							subStageObject.put(key, isDrip); // Store actual value of isDrip
 							break;
 					}
 				}
 			}
+
 			// ✅ Convert updated subStageObject to a Map for Firebase upload.
 			Map<String, Object> firebaseData = jsonToMapWithoutValueWrapper(subStageObject);
 
@@ -463,6 +463,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			Log.e("Firebase", "JSON Processing Error", e);
 		}
 	}
+
 
 	private Map<String, Object> jsonToMapWithoutValueWrapper(JSONObject jsonObject) throws JSONException {
 		Map<String, Object> map = new HashMap<>();
