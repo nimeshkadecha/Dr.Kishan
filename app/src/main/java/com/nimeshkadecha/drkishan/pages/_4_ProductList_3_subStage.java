@@ -47,7 +47,7 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
-		header.setText(MessageFormat.format("FP > {0} > {1}",productName, stage));
+		header.setText(MessageFormat.format("FP > {0} > {1}", productName, stage));
 		header.setTextSize(20f);
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
@@ -97,26 +97,36 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 	private void showAddSubStageDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle("Enter Sub-Stage Name");
+		builder.setTitle("Enter sub-stage Name");
 
 		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_list, null);
-		EditText etSubStageName = customView.findViewById(R.id.etProductName);
+		EditText etName = customView.findViewById(R.id.etProductName);
 		builder.setView(customView);
 
-		builder.setPositiveButton("OK", (dialog, which) -> {
-			String subStageName = etSubStageName.getText().toString().trim();
-
-			if (!subStageName.isEmpty()) {
-				addSubStageToPrefs(subStageName);
-			} else {
-				Toast.makeText(this, "Sub-stage name cannot be empty!", Toast.LENGTH_SHORT).show();
-			}
-		});
-
+		builder.setPositiveButton("OK", null); // Set initially to null, we will override later
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
 		AlertDialog alertDialog = builder.create();
 		alertDialog.show();
+
+		// Override OK button click to prevent automatic dialog dismissal
+		alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+			String subStageName = etName.getText().toString().trim();
+
+			if (subStageName.isEmpty()) {
+				etName.setError("Sub-stage name cannot be empty!");
+				return;
+			}
+
+			if (subStageName.matches(".*[.#$\\[\\]].*")) {
+				etName.setError("Name cannot contain '.', '#', '$', '[', or ']'");
+				return;
+			}
+
+			// If validation passes, dismiss dialog and proceed
+			addSubStageToPrefs(subStageName);
+			alertDialog.dismiss();
+		});
 	}
 
 	@SuppressLint("NotifyDataSetChanged")
@@ -135,15 +145,29 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 			JSONObject stageObj = productObj.optJSONObject(stage);
 			if (stageObj == null) stageObj = new JSONObject();
 
+			// ✅ Generate new sub-stage number
+			int maxNumber = 0;
+			Iterator<String> keys = stageObj.keys();
+			while (keys.hasNext()) {
+				String key = keys.next();
+				if (key.contains("@")) {
+					try {
+						int num = Integer.parseInt(key.split("@")[0]);
+						if (num > maxNumber) maxNumber = num;
+					} catch (NumberFormatException ignored) {}
+				}
+			}
+			String numberedSubStage = (maxNumber + 1) + "@" + subStageName;
+
 			// ✅ Add the new sub-stage
-			stageObj.put(subStageName, new JSONObject());
+			stageObj.put(numberedSubStage, new JSONObject());
 			productObj.put(stage, stageObj);
 			userObj.put(productName, productObj);
 			jsonObject.put(userName, userObj);
 
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
-			subStageList.add(subStageName);
+			subStageList.add(numberedSubStage);
 			adapter.notifyDataSetChanged();
 
 			Toast.makeText(this, "Sub-stage Added!", Toast.LENGTH_SHORT).show();

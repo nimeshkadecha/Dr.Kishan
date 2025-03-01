@@ -24,6 +24,7 @@ import org.json.JSONObject;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		productName = getIntent().getStringExtra("productName");
 		userName = getIntent().getStringExtra("userName");
 
-		// ✅ setting header
+		// ✅ Setting header
 		TextView header = findViewById(R.id.textView_Header);
 		header.setText(MessageFormat.format("FP > {0}", productName));
 		header.setTextSize(20f);
@@ -52,7 +53,7 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		// Setup RecyclerView
 		RecyclerView recyclerView = findViewById(R.id.stageList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(_3_ProductList_2_staging.this, stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
+		adapter = new ProductAdapter(this, stageList, userName, productName, ProductAdapter.AdapterType.STAGES);
 
 		recyclerView.setAdapter(adapter);
 
@@ -86,6 +87,13 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 				stageList.add(stageKeys.next());
 			}
 
+			// ✅ Sort by extracted number
+			Collections.sort(stageList, (a, b) -> {
+				int numA = extractNumber(a);
+				int numB = extractNumber(b);
+				return Integer.compare(numA, numB);
+			});
+
 			if (!stageList.isEmpty()) {
 				runOnUiThread(() -> {
 					adapter.updateList(stageList);
@@ -101,26 +109,36 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 	/** ✅ Show Dialog to Add Stage */
 	private void showAddStageDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle("Enter Stage Name");
+		builder.setTitle("Enter stage Name");
 
 		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_list, null);
-		EditText etStageName = customView.findViewById(R.id.etProductName);
+		EditText etName = customView.findViewById(R.id.etProductName);
 		builder.setView(customView);
 
-		builder.setPositiveButton("OK", (dialog, which) -> {
-			String stageName = etStageName.getText().toString().trim();
-
-			if (!stageName.isEmpty()) {
-				addStageToPrefs(stageName);
-				loadStagesFromPrefs(); // ✅ Refresh RecyclerView
-				Toast.makeText(this, "Stage Added: " + stageName, Toast.LENGTH_SHORT).show();
-			} else {
-				Toast.makeText(this, "Stage name cannot be empty!", Toast.LENGTH_SHORT).show();
-			}
-		});
-
+		builder.setPositiveButton("OK", null); // Set initially to null, we will override later
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-		builder.create().show();
+
+		AlertDialog alertDialog = builder.create();
+		alertDialog.show();
+
+		// Override OK button click to prevent automatic dialog dismissal
+		alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+			String subStageName = etName.getText().toString().trim();
+
+			if (subStageName.isEmpty()) {
+				etName.setError("Stage name cannot be empty!");
+				return;
+			}
+
+			if (subStageName.matches(".*[.#$\\[\\]].*")) {
+				etName.setError("Name cannot contain '.', '#', '$', '[', or ']'");
+				return;
+			}
+
+			// If validation passes, dismiss dialog and proceed
+			addStageToPrefs(subStageName);
+			alertDialog.dismiss();
+		});
 	}
 
 	/** ✅ Add Stage to SharedPreferences */
@@ -131,7 +149,6 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		try {
 			json = jsonString.isEmpty() ? new JSONObject() : new JSONObject(jsonString);
 
-			// Ensure user & product nodes exist
 			if (!json.has(userName)) {
 				json.put(userName, new JSONObject());
 			}
@@ -142,9 +159,13 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 			}
 			JSONObject productJson = userJson.getJSONObject(productName);
 
-			// ✅ Add stage (if not already present)
-			if (!productJson.has(stageName)) {
-				productJson.put(stageName, new JSONObject());
+			// ✅ Determine next number
+			int nextNumber = getNextStageNumber();
+			String formattedStageName = nextNumber + "@" + stageName;
+
+			// ✅ Add stage
+			if (!productJson.has(formattedStageName)) {
+				productJson.put(formattedStageName, new JSONObject());
 				saveJsonToPrefs(json.toString());
 			} else {
 				Toast.makeText(this, "Stage already exists!", Toast.LENGTH_SHORT).show();
@@ -155,15 +176,27 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		}
 	}
 
+	private int getNextStageNumber() {
+		int maxNumber = 0;
+		for (String stage : stageList) {
+			maxNumber = Math.max(maxNumber, extractNumber(stage));
+		}
+		return maxNumber + 1;
+	}
+
+	private int extractNumber(String text) {
+		try {
+			return Integer.parseInt(text.split("@")[0]);
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
 	private void saveJsonToPrefs(String json) {
-		getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
-										.edit()
-										.putString("savedJson", json)
-										.apply();
+		getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).edit().putString("savedJson", json).apply();
 	}
 
 	private String getJsonFromPrefs() {
-		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE)
-										.getString("savedJson", ""); // Default: empty string
+		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).getString("savedJson", "");
 	}
 }

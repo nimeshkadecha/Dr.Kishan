@@ -26,8 +26,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class _2_ProductList_1_main extends AppCompatActivity {
 
@@ -58,13 +61,11 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		userName = getIntent().getStringExtra("name");
 		sharedPreferences = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 
-		// ✅ Setup RecyclerView
 		RecyclerView recyclerView = findViewById(R.id.productsList);
 		recyclerView.setLayoutManager(new LinearLayoutManager(this));
-		adapter = new ProductAdapter(_2_ProductList_1_main.this, productList, userName, ProductAdapter.AdapterType.PRODUCTS);
+		adapter = new ProductAdapter(this, productList, userName, ProductAdapter.AdapterType.PRODUCTS);
 		recyclerView.setAdapter(adapter);
 
-		// ✅ Load data from SharedPreferences
 		loadProductsFromPrefs();
 
 		findViewById(R.id.btnAddProduct).setOnClickListener(view -> showAddProductDialog());
@@ -90,48 +91,54 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 				}
 			}
 
-			if (!productList.isEmpty()) {
-				adapter.updateList(productList);
-				adapter.notifyDataSetChanged();
-			}
+			Collections.sort(productList, (a, b) -> extractNumber(a) - extractNumber(b));
+			adapter.updateList(productList);
+			adapter.notifyDataSetChanged();
 		} catch (JSONException e) {
 			Log.e("SharedPrefs", "Error parsing JSON from SharedPreferences", e);
 		}
 	}
 
 	/** ✅ Show Dialog to Add Product */
+
 	private void showAddProductDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle("Enter Product Name");
+		builder.setTitle("Enter product Name");
 
 		View customView = LayoutInflater.from(this).inflate(R.layout.dialog_add_to_list, null);
-		EditText etProductName = customView.findViewById(R.id.etProductName);
+		EditText etName = customView.findViewById(R.id.etProductName);
 		builder.setView(customView);
 
-		builder.setPositiveButton("OK", (dialog, which) -> {
-			String productName = etProductName.getText().toString().trim();
-
-			if (!productName.isEmpty()) {
-				addProductToPrefs(productName);
-				loadProductsFromPrefs();
-				Toast.makeText(this, "Product Added: " + productName, Toast.LENGTH_SHORT).show();
-			} else {
-				Toast.makeText(this, "Product name cannot be empty!", Toast.LENGTH_SHORT).show();
-			}
-		});
-
+		builder.setPositiveButton("OK", null); // Set initially to null, we will override later
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-		builder.create().show();
+
+		AlertDialog alertDialog = builder.create();
+		alertDialog.show();
+
+		// Override OK button click to prevent automatic dialog dismissal
+		alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+			String subStageName = etName.getText().toString().trim();
+
+			if (subStageName.isEmpty()) {
+				etName.setError("Product name cannot be empty!");
+				return;
+			}
+
+			if (subStageName.matches(".*[.#$\\[\\]].*")) {
+				etName.setError("Name cannot contain '.', '#', '$', '[', or ']'");
+				return;
+			}
+
+			// If validation passes, dismiss dialog and proceed
+			addProductToPrefs(subStageName);
+			alertDialog.dismiss();
+		});
 	}
 
+
 	/** ✅ Add Product to SharedPreferences */
+
 	private void addProductToPrefs(String productName) {
-
-		if (!isInternetAvailable()) {
-			showNoInternetDialog();
-			return;
-		}
-
 		String jsonString = sharedPreferences.getString("savedJson", "{}");
 
 		try {
@@ -141,15 +148,15 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 			}
 
 			JSONObject userJson = json.getJSONObject(userName);
+			int nextNumber = findNextAvailableNumber(userJson);
+			String formattedName = nextNumber + "@" + productName;
 
-			// ✅ Add product (if not already present)
-			if (!userJson.has(productName)) {
-				userJson.put(productName, new JSONObject());
+			if (!userJson.has(formattedName)) {
+				userJson.put(formattedName, new JSONObject());
 				sharedPreferences.edit().putString("savedJson", json.toString()).apply();
 			} else {
 				Toast.makeText(this, "Product already exists!", Toast.LENGTH_SHORT).show();
 			}
-
 		} catch (JSONException e) {
 			Log.e("SharedPrefs", "Error updating JSON in SharedPreferences", e);
 		}
@@ -162,6 +169,24 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		finish();
 	}
 
+	private int findNextAvailableNumber(JSONObject userJson) {
+		int maxNum = 0;
+		Iterator<String> keys = userJson.keys();
+		while (keys.hasNext()) {
+			String key = keys.next();
+			maxNum = Math.max(maxNum, extractNumber(key));
+		}
+		return maxNum + 1;
+	}
+
+	private int extractNumber(String str) {
+		Pattern pattern = Pattern.compile("^(\\d+)@");
+		Matcher matcher = pattern.matcher(str);
+		if (matcher.find()) {
+			return Integer.parseInt(matcher.group(1));
+		}
+		return 0;
+	}
 
 	private void showNoInternetDialog() {
 		new AlertDialog.Builder(this)

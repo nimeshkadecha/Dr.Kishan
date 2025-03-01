@@ -26,6 +26,8 @@ import com.nimeshkadecha.drkishan.pages._5_TimingInformation;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
@@ -53,6 +55,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		this.itemList = itemList;
 		this.userName = userName;
 		this.adapterType = adapterType;
+		sortItems();
 	}
 
 	// ✅ Constructor for Stages
@@ -62,6 +65,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		this.userName = userName;
 		this.productName = productName;
 		this.adapterType = adapterType;
+		sortItems();
 	}
 
 	// ✅ Constructor for Sub-Stages
@@ -72,6 +76,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		this.productName = productName;
 		this.stage = stage;
 		this.adapterType = adapterType;
+		sortItems();
 	}
 
 	@NonNull
@@ -83,7 +88,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 	@Override
 	public void onBindViewHolder(@NonNull ProductViewHolder holder, int position) {
-		holder.txtItem.setText(itemList.get(position));
+		String rawItem = itemList.get(position);
+		String formattedItem = extractItemName(rawItem);
+		holder.txtItem.setText(formattedItem);
 
 		holder.txtItem.setOnClickListener(v -> {
 			Intent intent;
@@ -108,10 +115,33 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 		// ✅ Long-click for deletion
 		holder.txtItem.setOnLongClickListener(v -> {
-			showEditDeleteDialog(v.getContext(), position, itemList.get(position));
+			showEditDeleteDialog(v.getContext(), position, rawItem);
 			return true;
 		});
 
+	}
+
+	private int getNextNumber() {
+		int maxNumber = 0;
+		for (String item : itemList) {
+			int number = extractNumber(item);
+			if (number > maxNumber) {
+				maxNumber = number;
+			}
+		}
+		return maxNumber + 1;
+	}
+
+	private int extractNumber(String item) {
+		try {
+			return Integer.parseInt(item.split("@")[0]);
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	private String extractItemName(String item) {
+		return item.substring(item.indexOf("@") + 1);
 	}
 
 	@Override
@@ -190,33 +220,47 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			txtItem = itemView.findViewById(R.id.txtProductName);
 		}
 	}
-
-	private void showEditDeleteDialog(Context context, int position, String currentName) {
+	private void showEditDeleteDialog(Context context, int position, String originalItem) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(context);
 		builder.setTitle("Edit/Delete Item");
 
 		// ✅ Inflate existing dialog layout
 		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_to_list, null);
 		EditText etProductName = view.findViewById(R.id.etProductName);
-		etProductName.setText(currentName); // ✅ Pre-fill existing name
+		etProductName.setText(extractItemName(originalItem)); // ✅ Pre-fill existing name
 
 		builder.setView(view);
 
-		builder.setPositiveButton("Edit", (dialog, which) -> {
-			String newName = etProductName.getText().toString().trim();
-			if (!newName.isEmpty() && !newName.equals(currentName)) {
-				updateItemInStorage(context, position, currentName, newName);
-			} else {
-				Toast.makeText(context, "No changes made!", Toast.LENGTH_SHORT).show();
-			}
-		});
-
-		builder.setNegativeButton("Delete", (dialog, which) -> deleteItemFromStorage(context, position, currentName));
-
+		builder.setPositiveButton("Save", null); // Set initially to null, we will override later
+		builder.setNegativeButton("Delete", (dialog, which) -> deleteItemFromStorage(context, position, originalItem));
 		builder.setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss());
 
-		builder.create().show();
+		AlertDialog alertDialog = builder.create();
+		alertDialog.show();
+
+		// ✅ Override "Save" button click
+		alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+			String editedName = etProductName.getText().toString().trim();
+
+			if (editedName.isEmpty()) {
+				etProductName.setError("Product name cannot be empty!");
+				return;
+			}
+
+			if (editedName.matches(".*[.#$\\[\\]].*")) {
+				etProductName.setError("Name cannot contain '.', '#', '$', '[', or ']'");
+				return;
+			}
+
+			// ✅ If validation passes, update storage and dismiss the dialog
+			String updatedItem = extractNumber(originalItem) + "@" + editedName;
+			itemList.set(position, updatedItem);
+			updateItemInStorage(context, position, originalItem, updatedItem);
+			notifyDataSetChanged();
+			alertDialog.dismiss();
+		});
 	}
+
 	private void updateItemInStorage(Context context, int position, String oldName, String newName) {
 		try {
 			// ✅ Fetch SharedPreferences
@@ -263,6 +307,10 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		} catch (JSONException e) {
 			Log.e("Update", "Error updating item", e);
 		}
+	}
+
+	private void sortItems() {
+		Collections.sort(itemList, Comparator.comparingInt(this::extractNumber));
 	}
 
 	private void updateFirebase(String oldName, String newName) {
