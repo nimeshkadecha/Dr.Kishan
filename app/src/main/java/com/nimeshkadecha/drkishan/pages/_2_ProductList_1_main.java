@@ -21,6 +21,8 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.nimeshkadecha.drkishan.Helper.ProductAdapter;
 import com.nimeshkadecha.drkishan.R;
 
@@ -207,6 +209,11 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 			if (!userJson.has(formattedName)) {
 				userJson.put(formattedName, new JSONObject());
 				sharedPreferences.edit().putString("savedJson", json.toString()).apply();
+
+				// ✅ Add to productList immediately and update RecyclerView
+				productList.add(formattedName);
+				Collections.sort(productList, (a, b) -> extractNumber(a) - extractNumber(b));
+				adapter.notifyDataSetChanged(); // Refresh RecyclerView instantly
 			} else {
 				Toast.makeText(this, "Product already exists!", Toast.LENGTH_SHORT).show();
 			}
@@ -215,11 +222,13 @@ public class _2_ProductList_1_main extends AppCompatActivity {
 		}
 	}
 
+
 	private void logoutUser() {
 		sharedPreferences.edit().clear().apply();
 		startActivity(new Intent(this, _1_LoginPage.class));
 		finish();
 	}
+
 
 	private int findNextAvailableNumber(JSONObject userJson) {
 		int maxNum = 0;

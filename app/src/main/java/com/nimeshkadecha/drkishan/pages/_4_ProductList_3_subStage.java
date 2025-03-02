@@ -29,6 +29,8 @@ import org.json.JSONObject;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -213,12 +215,10 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 	private String getJsonFromPrefs() {
 		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).getString("savedJson", "");
 	}
-
-	@SuppressLint("NotifyDataSetChanged")
 	private void addSubStageToPrefs(String subStageName) {
 		try {
 			SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
-			String savedJson = prefs.getString("savedJson", "");
+			String savedJson = prefs.getString("savedJson", "{}");
 
 			JSONObject jsonObject = new JSONObject(savedJson);
 			JSONObject userObj = jsonObject.optJSONObject(userName);
@@ -230,36 +230,48 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 			JSONObject stageObj = productObj.optJSONObject(stage);
 			if (stageObj == null) stageObj = new JSONObject();
 
-			// ✅ Generate new sub-stage number
-			int maxNumber = 0;
+			// ✅ Determine next available number
+			int nextNumber = 1;
 			Iterator<String> keys = stageObj.keys();
 			while (keys.hasNext()) {
 				String key = keys.next();
 				if (key.contains("@")) {
 					try {
 						int num = Integer.parseInt(key.split("@")[0]);
-						if (num > maxNumber) maxNumber = num;
+						nextNumber = Math.max(nextNumber, num + 1);
 					} catch (NumberFormatException ignored) {}
 				}
 			}
-			String numberedSubStage = (maxNumber + 1) + "@" + subStageName;
+
+			String formattedSubStageName = nextNumber + "@" + subStageName;
 
 			// ✅ Add the new sub-stage
-			stageObj.put(numberedSubStage, new JSONObject());
-			productObj.put(stage, stageObj);
-			userObj.put(productName, productObj);
-			jsonObject.put(userName, userObj);
+			if (!stageObj.has(formattedSubStageName)) {
+				stageObj.put(formattedSubStageName, new JSONObject());
+				productObj.put(stage, stageObj);
+				userObj.put(productName, productObj);
+				jsonObject.put(userName, userObj);
 
-			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+				prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
-			subStageList.add(numberedSubStage);
-			adapter.notifyDataSetChanged();
-
-			Toast.makeText(this, "Sub-stage Added!", Toast.LENGTH_SHORT).show();
-
+				// ✅ Add to subStageList immediately and update RecyclerView
+				subStageList.add(formattedSubStageName);
+				Collections.sort(subStageList, Comparator.comparingInt(this::extractNumber));
+				adapter.notifyDataSetChanged(); // Refresh RecyclerView instantly
+			} else {
+				Toast.makeText(this, "Sub-stage already exists!", Toast.LENGTH_SHORT).show();
+			}
 		} catch (Exception e) {
-			Log.e("ENimesh", "Error updating JSON", e);
-			Toast.makeText(this, "Failed to add sub-stage!", Toast.LENGTH_SHORT).show();
+			Log.e("SharedPrefs", "Error updating JSON in SharedPreferences", e);
 		}
 	}
+
+	private int extractNumber(String item) {
+		try {
+			return Integer.parseInt(item.split("@")[0]);
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
 }

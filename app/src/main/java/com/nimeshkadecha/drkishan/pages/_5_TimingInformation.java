@@ -64,8 +64,12 @@ public class _5_TimingInformation extends AppCompatActivity {
 		// Initialize UI elements
 		days = findViewById(R.id.days);
 		date = findViewById(R.id.date);
+		String curDate = new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date());
+		date.setText(curDate);
+
 		amount = findViewById(R.id.editTextText);
 		spinner = findViewById(R.id.spinner);
+
 		@SuppressLint("UseSwitchCompatOrMaterialCode") Switch drip = findViewById(R.id.switch1Drip);
 
 		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
@@ -86,6 +90,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 		}
 		catch (JSONException e) {
 			e.printStackTrace();
+			isDrip = false;
 		}
 
 		// Populate Spinner with "Acr" and "Vigha"

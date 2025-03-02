@@ -245,6 +245,11 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 			if (!productJson.has(formattedStageName)) {
 				productJson.put(formattedStageName, new JSONObject());
 				saveJsonToPrefs(json.toString());
+
+				// ✅ Add to stageList immediately and update RecyclerView
+				stageList.add(formattedStageName);
+				Collections.sort(stageList, (a, b) -> extractNumber(a) - extractNumber(b));
+				adapter.notifyDataSetChanged(); // Refresh RecyclerView instantly
 			} else {
 				Toast.makeText(this, "Stage already exists!", Toast.LENGTH_SHORT).show();
 			}
