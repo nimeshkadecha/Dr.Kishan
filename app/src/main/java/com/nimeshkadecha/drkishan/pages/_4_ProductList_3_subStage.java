@@ -1,6 +1,7 @@
 package com.nimeshkadecha.drkishan.pages;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,14 +14,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.nimeshkadecha.drkishan.Helper.ProductAdapter;
 import com.nimeshkadecha.drkishan.R;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.MessageFormat;
@@ -64,6 +68,79 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		// ✅ Button to Add New Sub-Stage
 		Button btnAddSubStage = findViewById(R.id.btnSubStageProduct);
 		btnAddSubStage.setOnClickListener(v -> showAddSubStageDialog());
+
+		ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+										ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.START | ItemTouchHelper.END,
+										ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT // ✅ Enable swipe
+		) {
+			@Override
+			public boolean onMove(@NonNull RecyclerView recyclerView,
+			                      @NonNull RecyclerView.ViewHolder viewHolder,
+			                      @NonNull RecyclerView.ViewHolder target) {
+				int fromPosition = viewHolder.getAdapterPosition();
+				int toPosition = target.getAdapterPosition();
+
+				// ✅ Call adapter method to swap items
+				adapter.onItemMove(fromPosition, toPosition);
+				return true;
+			}
+
+			@Override
+			public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+				int position = viewHolder.getAdapterPosition();
+//				String stageName = subStageList.get(position); // Get the stage name
+//				Context context = viewHolder.itemView.getContext();
+
+				// ✅ Call edit/delete dialog
+				adapter.onItemSwipe(position);
+
+				// Prevent automatic deletion by refreshing item
+				adapter.notifyItemChanged(position);
+			}
+
+			@Override
+			public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+				super.clearView(recyclerView, viewHolder);
+
+				// ✅ Update order in SharedPreferences after drag-and-drop
+				updateSubStageOrder(new ArrayList<>(subStageList));
+			}
+		});
+
+// ✅ Attach to RecyclerView
+		itemTouchHelper.attachToRecyclerView(recyclerView);
+
+	}
+	private void updateSubStageOrder(List<String> newOrder) {
+		String jsonString = getJsonFromPrefs();
+
+		try {
+			JSONObject json = new JSONObject(jsonString);
+			if (!json.has(userName) || !json.getJSONObject(userName).has(productName) ||
+											!json.getJSONObject(userName).getJSONObject(productName).has(stage)) return;
+
+			JSONObject stageJson = json.getJSONObject(userName).getJSONObject(productName).getJSONObject(stage);
+			JSONObject newStageJson = new JSONObject();
+
+			// ✅ Rename keys based on new order
+			for (int i = 0; i < newOrder.size(); i++) {
+				String oldKey = newOrder.get(i); // Example: "3@SubStageName"
+				int newNumber = i + 1; // New position (1-based index)
+				String newKey = newNumber + "@" + oldKey.split("@", 2)[1]; // Preserve sub-stage name
+
+				if (stageJson.has(oldKey)) {
+					newStageJson.put(newKey, stageJson.getJSONObject(oldKey));
+				}
+			}
+
+			// ✅ Replace old data with new sorted data
+			json.getJSONObject(userName).getJSONObject(productName).put(stage, newStageJson);
+
+			// ✅ Save back to SharedPreferences
+			saveJsonToPrefs(json.toString());
+		} catch (JSONException e) {
+			Log.e("SharedPrefs", "Error updating sub-stage order", e);
+		}
 	}
 
 	private void loadSubStagesFromPrefs() {
@@ -127,6 +204,14 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 			addSubStageToPrefs(subStageName);
 			alertDialog.dismiss();
 		});
+	}
+
+	private void saveJsonToPrefs(String json) {
+		getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).edit().putString("savedJson", json).apply();
+	}
+
+	private String getJsonFromPrefs() {
+		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).getString("savedJson", "");
 	}
 
 	@SuppressLint("NotifyDataSetChanged")

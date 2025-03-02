@@ -20,9 +20,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.nimeshkadecha.drkishan.R;
 import com.nimeshkadecha.drkishan.pages._3_ProductList_2_staging;
 import com.nimeshkadecha.drkishan.pages._4_ProductList_3_subStage;
-import com.nimeshkadecha.drkishan.R;
 import com.nimeshkadecha.drkishan.pages._5_TimingInformation;
 
 import org.json.JSONException;
@@ -30,6 +30,7 @@ import org.json.JSONObject;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
@@ -287,7 +288,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
 			// ✅ Update Firebase
-			updateFirebase(oldName, newName);
+			updateFirebase(oldName, newName, 1);
 
 			// ✅ Update UI
 			itemList.set(position, newName);
@@ -303,34 +304,6 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	private void sortItems() {
 		Collections.sort(itemList, Comparator.comparingInt(this::extractNumber));
 	}
-
-	private void updateFirebase(String oldName, String newName) {
-		DatabaseReference reference = FirebaseDatabase.getInstance().getReference(userName);
-
-		if (adapterType == AdapterType.PRODUCTS) {
-			reference.child(oldName).get().addOnSuccessListener(dataSnapshot -> {
-				if (dataSnapshot.exists()) {
-					reference.child(newName).setValue(dataSnapshot.getValue());
-					reference.child(oldName).removeValue(); // ✅ Remove only if copied successfully
-				}
-			});
-		} else if (adapterType == AdapterType.STAGES) {
-			reference.child(productName).child(oldName).get().addOnSuccessListener(dataSnapshot -> {
-				if (dataSnapshot.exists()) {
-					reference.child(productName).child(newName).setValue(dataSnapshot.getValue());
-					reference.child(productName).child(oldName).removeValue();
-				}
-			});
-		} else if (adapterType == AdapterType.SUB_STAGES) {
-			reference.child(productName).child(stage).child(oldName).get().addOnSuccessListener(dataSnapshot -> {
-				if (dataSnapshot.exists()) {
-					reference.child(productName).child(stage).child(newName).setValue(dataSnapshot.getValue());
-					reference.child(productName).child(stage).child(oldName).removeValue();
-				}
-			});
-		}
-	}
-
 
 	public void onItemMove(int fromPosition, int toPosition) {
 		if (fromPosition < toPosition) {
@@ -352,6 +325,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 	public void onItemSwipe(int position) {
 		showEditDeleteDialog(context, position, itemList.get(position));
 	}
+
 	private void renameAndSaveItems() {
 		try {
 			SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -361,49 +335,76 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			if (!jsonObject.has(userName)) return;
 
 			JSONObject userJson = jsonObject.getJSONObject(userName);
+			JSONObject targetJson = adapterType == AdapterType.STAGES && userJson.has(productName)
+											? userJson.getJSONObject(productName)
+											: adapterType == AdapterType.SUB_STAGES && userJson.has(productName) && userJson.getJSONObject(productName).has(stage)
+											? userJson.getJSONObject(productName).getJSONObject(stage)
+											: userJson;
 
-			// ✅ If renaming Stages, work within the correct Product
-			JSONObject productJson = (adapterType == AdapterType.STAGES && userJson.has(productName))
-											? userJson.getJSONObject(productName) : userJson;
-
-			JSONObject updatedJson = new JSONObject(); // New ordered JSON
+			JSONObject updatedJson = new JSONObject(targetJson.toString()); // Ensure all items are retained
 
 			for (int i = 0; i < itemList.size(); i++) {
 				String oldKey = itemList.get(i);
-				String newKey = (i + 1) + "@" + extractItemName(oldKey);
+				String newKey = (i + 1) + "@" + oldKey.split("@", 2)[1];
 
-				// ✅ Deep Copy Entire Structure (Prevents Data Loss)
-				if (productJson.has(oldKey)) {
-					JSONObject stageData = productJson.getJSONObject(oldKey);
-					JSONObject copiedStageData = new JSONObject(stageData.toString()); // Copy all sub-stages
-
-					updatedJson.put(newKey, copiedStageData);
+				if (!oldKey.equals(newKey) && targetJson.has(oldKey)) {
+					JSONObject itemData = targetJson.getJSONObject(oldKey);
+					updatedJson.put(newKey, itemData);
+					updateFirebase(oldKey, newKey, 1);
+					itemList.set(i, newKey);
 				}
-
-				// ✅ Update Firebase (Moves Data to New Key)
-				updateFirebase(oldKey, newKey);
-
-				// ✅ Rename in local list
-				itemList.set(i, newKey);
 			}
 
-			// ✅ Save updated JSON back to SharedPreferences
 			if (adapterType == AdapterType.STAGES) {
 				userJson.put(productName, updatedJson);
+			} else if (adapterType == AdapterType.SUB_STAGES) {
+				userJson.getJSONObject(productName).put(stage, updatedJson);
 			} else {
 				jsonObject.put(userName, updatedJson);
 			}
 
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
-
-			// ✅ Debugging Log
-			Log.d("ENimesh", "Updated Data - " + prefs.getString("savedJson", "{}"));
-
 			notifyDataSetChanged();
-
 		} catch (JSONException e) {
-			Log.e("RenameError", "Error renaming stages", e);
+			Log.e("RenameError", "Error renaming items", e);
 		}
 	}
 
+	private void updateFirebase(String oldKey, String newKey, int attempt) {
+		DatabaseReference reference = FirebaseDatabase.getInstance().getReference(userName);
+
+		DatabaseReference oldRef = adapterType == AdapterType.PRODUCTS
+										? reference.child(oldKey)
+										: adapterType == AdapterType.STAGES
+										? reference.child(productName).child(oldKey)
+										: reference.child(productName).child(stage).child(oldKey);
+
+		DatabaseReference newRef = adapterType == AdapterType.PRODUCTS
+										? reference.child(newKey)
+										: adapterType == AdapterType.STAGES
+										? reference.child(productName).child(newKey)
+										: reference.child(productName).child(stage).child(newKey);
+
+		oldRef.get().addOnSuccessListener(dataSnapshot -> {
+			if (dataSnapshot.exists()) {
+				newRef.setValue(dataSnapshot.getValue())
+												.addOnSuccessListener(aVoid -> oldRef.removeValue())
+												.addOnFailureListener(e -> {
+													if (attempt < 2) {
+														updateFirebase(oldKey, newKey, attempt + 1);
+													} else {
+														Log.e("FirebaseUpdate", "Failed to update key: " + oldKey, e);
+														Toast.makeText(context, "Failed Firebase Renaming", Toast.LENGTH_SHORT).show();
+													}
+												});
+			}
+		}).addOnFailureListener(e -> {
+			if (attempt < 2) {
+				updateFirebase(oldKey, newKey, attempt + 1);
+			} else {
+				Log.e("FirebaseUpdate", "Failed to fetch key: " + oldKey, e);
+				Toast.makeText(context, "Failed Firebase Renaming", Toast.LENGTH_SHORT).show();
+			}
+		});
+	}
 }
