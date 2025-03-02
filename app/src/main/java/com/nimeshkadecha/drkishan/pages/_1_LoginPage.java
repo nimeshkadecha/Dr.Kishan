@@ -41,6 +41,11 @@ public class _1_LoginPage extends AppCompatActivity {
 		reference = FirebaseDatabase.getInstance().getReference("");
 		sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
+		findViewById(R.id.forgetPassword).setOnClickListener(View ->{
+			Intent intent = new Intent(_1_LoginPage.this, _1_ForgotPassword.class);
+			startActivity(intent);
+		});
+
 		// ✅ If user is logged in, use SharedPreferences & skip Firebase
 		if (isUserLoggedIn()) {
 			String loggedInUser = sharedPreferences.getString("loggedInUser", "");
@@ -141,6 +146,5 @@ public class _1_LoginPage extends AppCompatActivity {
 										.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
 										.show();
 	}
-
 
 }

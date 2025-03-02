@@ -27,7 +27,7 @@
         android:layout_width="340dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="200dp"
-        android:hint="@string/enter_name"
+        android:hint="User Name"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -35,7 +35,6 @@
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/rName"
             style="@style/TextInputEditText"
-            android:text="users1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="12dp"
@@ -49,7 +48,7 @@
         android:layout_width="340dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
-        android:hint="@string/enter_password"
+        android:hint="Password"
         app:endIconMode="password_toggle"
         app:layout_constraintEnd_toEndOf="@id/textInputLayoutName"
         app:layout_constraintStart_toStartOf="@id/textInputLayoutName"
@@ -59,12 +58,25 @@
             android:id="@+id/password"
             style="@style/TextInputEditText"
             android:layout_width="match_parent"
-            android:text="123456789"
             android:layout_height="wrap_content"
             android:inputType="textPassword"
             android:padding="12dp"
             tools:ignore="TextContrastCheck"/>
     </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/forgetPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:text="Forget Password"
+        android:textColor="#D0AFFF"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/loginBtn"
+        app:layout_constraintEnd_toEndOf="@+id/textInputLayoutName2"
+        app:layout_constraintStart_toEndOf="@+id/loginBtn"
+        app:layout_constraintTop_toBottomOf="@+id/textInputLayoutName2"
+        tools:ignore="TouchTargetSizeCheck,UsingOnClickInXml" />
 
     <!-- Login Button -->
     <Button
@@ -75,7 +87,7 @@
         android:paddingTop="12dp"
         android:paddingEnd="30dp"
         android:paddingBottom="12dp"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="50dp"
         android:text="@string/login"
         android:textColor="?attr/colorOnPrimary"
         android:backgroundTint="?attr/colorPrimary"
