@@ -257,7 +257,7 @@ public class _5_TimingInformation extends AppCompatActivity {
 
 	private void validateAndContinue() {
 		if (days.getText().toString().isEmpty()) {
-			days.setError("Enter interval da ys");
+			days.setError("Enter interval days");
 			return;
 		}
 		if (date.getText().toString().isEmpty()) {

@@ -263,9 +263,14 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			if (!isDrip) {
 				// ✅ Include quantity and unit if `isDrip` is false
 				String selectedUnit = unitSpinner.getSelectedItem().toString();
+				String rawQuantity = etProductQuantity.getText().toString().trim();
+
+				// ✅ Remove any characters that are not digits or '.'
+				rawQuantity = rawQuantity.replaceAll("[^0-9.]", "");
+
 				String formattedQuantity;
 				try {
-					double newQuantity = Double.parseDouble(etProductQuantity.getText().toString().trim()) * calculateAm;
+					double newQuantity = Double.parseDouble(rawQuantity) * calculateAm;
 					formattedQuantity = formatQuantity(newQuantity, selectedUnit);
 				} catch (NumberFormatException e) {
 					Toast.makeText(this, "Enter a valid quantity", Toast.LENGTH_SHORT).show();
@@ -585,7 +590,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
 	}
-
 
 	// ✅ Function to translate units while keeping other text unchanged
 	private String translateUnits(String message) {
