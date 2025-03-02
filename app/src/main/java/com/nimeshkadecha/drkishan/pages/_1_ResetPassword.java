@@ -13,11 +13,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -29,7 +25,7 @@ import com.nimeshkadecha.drkishan.R;
 
 import org.json.JSONObject;
 
-public class _1_ForgotPassword extends AppCompatActivity {
+public class _1_ResetPassword extends AppCompatActivity {
 
 	EditText currentPassword,newPassword,userName;
 
@@ -43,7 +39,7 @@ public class _1_ForgotPassword extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		EdgeToEdge.enable(this);
-		setContentView(R.layout.activity_1_1_forgot_password);
+		setContentView(R.layout.activity_1_reset_password);
 
 		sharedPreferences = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 
@@ -164,7 +160,7 @@ public class _1_ForgotPassword extends AppCompatActivity {
 	}
 
 	private void navigateToProducts(String username) {
-		Intent intent = new Intent(_1_ForgotPassword.this, _2_ProductList_1_main.class);
+		Intent intent = new Intent(_1_ResetPassword.this, _2_ProductList_1_main.class);
 		intent.putExtra("name", username);
 		startActivity(intent);
 		finish();

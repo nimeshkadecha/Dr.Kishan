@@ -15,7 +15,7 @@
         android:theme="@style/Theme.DrKishan"
         tools:targetApi="31">
         <activity
-            android:name=".pages._1_ForgotPassword"
+            android:name=".pages._1_ResetPassword"
             android:exported="false" />
         <activity
             android:name=".pages._4_ProductList_3_subStage"

@@ -42,7 +42,7 @@ public class _1_LoginPage extends AppCompatActivity {
 		sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
 		findViewById(R.id.forgetPassword).setOnClickListener(View ->{
-			Intent intent = new Intent(_1_LoginPage.this, _1_ForgotPassword.class);
+			Intent intent = new Intent(_1_LoginPage.this, _1_ResetPassword.class);
 			startActivity(intent);
 		});
 
