@@ -576,14 +576,14 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				}
 			}
 
-			copiedText.append("- *").append(mainDate).append("*\n");
+			copiedText.append("*").append(mainDate).append("*\n");
 			copiedText.append(finalCopiedString).append("\n\n");
 		} else {
 			// ✅ Iterate over each `k` in messagesMap (sorted automatically)
 			int counter = 0;
 			for (Integer k : messagesMap.keySet()) {
 				String date = addDaysToDate(mainDate, counter * interval); // ✅ Generate date dynamically
-				copiedText.append("- *").append(date).append("*\n"); // ✅ Append Date
+				copiedText.append("*").append(date).append("*\n"); // ✅ Append Date
 				counter++; // Increment for next interval
 
 				// ✅ Retrieve messages for the current `k`
@@ -592,7 +592,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				if (messages != null) {
 					StringBuilder finalCopiedString = new StringBuilder();
 					for (String message : messages) {
-						finalCopiedString.append("- ").append(translateUnits(message)).append("\n");
+						finalCopiedString.append("").append(translateUnits(message)).append("\n");
 					}
 					copiedText.append(finalCopiedString).append("\n\n"); // ✅ Append Message
 				}
