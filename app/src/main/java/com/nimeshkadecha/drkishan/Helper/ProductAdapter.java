@@ -318,7 +318,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 		// ✅ Rename items and update storage after reordering
 		renameAndSaveItems();
-
+		sortItems();
 		notifyItemMoved(fromPosition, toPosition);
 	}
 
@@ -341,7 +341,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 											? userJson.getJSONObject(productName).getJSONObject(stage)
 											: userJson;
 
-			JSONObject updatedJson = new JSONObject(targetJson.toString()); // Ensure all items are retained
+			JSONObject updatedJson = new JSONObject(targetJson.toString());
 
 			for (int i = 0; i < itemList.size(); i++) {
 				String oldKey = itemList.get(i);
@@ -364,6 +364,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			}
 
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
+			sortItems();
 			notifyDataSetChanged();
 		} catch (JSONException e) {
 			Log.e("RenameError", "Error renaming items", e);
