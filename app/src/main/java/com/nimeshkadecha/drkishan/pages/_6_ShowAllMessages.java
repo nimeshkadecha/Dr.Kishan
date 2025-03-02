@@ -90,8 +90,11 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
-		header.setText(MessageFormat.format("FP > {0} > {1} > {2}", productName, stage, subStage));
+
+		header.setText(MessageFormat.format("FP > {0} > {1} > {2}", extractName(productName), extractName(stage), extractName(subStage)));
+
 		header.setTextSize(20f);
+
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
@@ -465,8 +468,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			Log.e("Firebase", "JSON Processing Error", e);
 		}
 	}
-
-
 	private Map<String, Object> jsonToMapWithoutValueWrapper(JSONObject jsonObject) throws JSONException {
 		Map<String, Object> map = new HashMap<>();
 		Iterator<String> keys = jsonObject.keys();
@@ -691,6 +692,10 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 	public static void setNeedToSave(boolean val){
 		needToSave = val;
+	}
+
+	private String extractName(String item) {
+		return item.contains("@") ? item.substring(item.indexOf("@") + 1) : item;
 	}
 
 	@Override

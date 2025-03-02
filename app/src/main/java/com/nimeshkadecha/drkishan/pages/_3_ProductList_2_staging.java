@@ -48,8 +48,9 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 
 		// ✅ Setting header
 		TextView header = findViewById(R.id.textView_Header);
-		header.setText(MessageFormat.format("FP > {0}", productName));
+		header.setText(MessageFormat.format("FP > {0}", extractName(productName)));
 		header.setTextSize(20f);
+
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
@@ -273,6 +274,11 @@ public class _3_ProductList_2_staging extends AppCompatActivity {
 		} catch (Exception e) {
 			return 0;
 		}
+	}
+
+
+	private String extractName(String item) {
+		return item.contains("@") ? item.substring(item.indexOf("@") + 1) : item;
 	}
 
 	private void saveJsonToPrefs(String json) {

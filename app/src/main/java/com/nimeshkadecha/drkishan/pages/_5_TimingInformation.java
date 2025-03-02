@@ -56,8 +56,9 @@ public class _5_TimingInformation extends AppCompatActivity {
 
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
-		header.setText(MessageFormat.format("FP > {0} > {1} > {2}",productName, stage, subStage));
+		header.setText(MessageFormat.format("FP > {0} > {1} > {2}",extractName(productName), extractName(stage), extractName(subStage)));
 		header.setTextSize(20f);
+
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
@@ -307,6 +308,10 @@ public class _5_TimingInformation extends AppCompatActivity {
 
 		@SuppressLint("SetTextI18n") DatePickerDialog datePickerDialog = new DatePickerDialog(_5_TimingInformation.this, (view, year1, month1, dayOfMonth) -> date.setText(dayOfMonth + "/" + (month1 + 1) + "/" + year1), year, month, day);
 		datePickerDialog.show();
+	}
+
+	private String extractName(String item) {
+		return item.contains("@") ? item.substring(item.indexOf("@") + 1) : item;
 	}
 
 	@Override

@@ -53,8 +53,9 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
-		header.setText(MessageFormat.format("FP > {0} > {1}", productName, stage));
+		header.setText(MessageFormat.format("FP > {0} > {1}", extractName(productName), extractName(stage)));
 		header.setTextSize(20f);
+
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
 		scrollView.post(() -> scrollView.smoothScrollTo(header.getWidth(), 0));
 
@@ -272,6 +273,10 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 		} catch (Exception e) {
 			return 0;
 		}
+	}
+
+	private String extractName(String item) {
+		return item.contains("@") ? item.substring(item.indexOf("@") + 1) : item;
 	}
 
 }
