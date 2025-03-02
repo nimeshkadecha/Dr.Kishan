@@ -527,9 +527,13 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		StringBuilder copiedText = new StringBuilder();
 
-		// ✅ Add Header if provided
+		// ✅ Format Header if provided
 		if (!header.isEmpty()) {
-			copiedText.append(header).append("\n\n");
+			String[] headerLines = header.split("\\n");
+			for (String line : headerLines) {
+				copiedText.append("*").append(line).append("*\n");
+			}
+			copiedText.append("\n"); // Extra line break after header
 		}
 
 		// ✅ Check if interval is 0 (add all messages to mainDate)
@@ -544,7 +548,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			}
 
 			copiedText.append("*").append(mainDate).append("*\n");
-			copiedText.append(finalCopiedString).append("\n\n");
+			copiedText.append(finalCopiedString).append("\n");
 		} else {
 			// ✅ Iterate over each `k` in messagesMap (sorted automatically)
 			int counter = 0;
@@ -559,16 +563,19 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				if (messages != null) {
 					StringBuilder finalCopiedString = new StringBuilder();
 					for (String message : messages) {
-						finalCopiedString.append("").append(translateUnits(message)).append("\n");
+						finalCopiedString.append(translateUnits(message)).append("\n");
 					}
-					copiedText.append(finalCopiedString).append("\n\n"); // ✅ Append Message
+					copiedText.append(finalCopiedString).append("\n"); // ✅ Append Message
 				}
 			}
 		}
 
-		// ✅ Add Footer if provided
+		// ✅ Format Footer if provided
 		if (!footer.isEmpty()) {
-			copiedText.append(footer);
+			String[] footerLines = footer.split("\\n");
+			for (String line : footerLines) {
+				copiedText.append("*").append(line).append("*\n");
+			}
 		}
 
 		// ✅ Copy to Clipboard
@@ -578,6 +585,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		Toast.makeText(this, "Copied to Clipboard!", Toast.LENGTH_SHORT).show();
 	}
+
 
 	// ✅ Function to translate units while keeping other text unchanged
 	private String translateUnits(String message) {
@@ -655,7 +663,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				finalUnit = unit; // Keep the original unit if unrecognized
 		}
 
-		return formatNumber(convertedQuantity) + " " + finalUnit;
+		return formatNumber(convertedQuantity) + finalUnit;
 	}
 
 	public static void setNeedToSave(boolean val){
