@@ -15,6 +15,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -32,7 +33,7 @@ import java.util.Objects;
 
 public class _5_TimingInformation extends AppCompatActivity {
 
-	private EditText date, days, amount;
+	private EditText date, days, amount,etHeader,etFooter;
 	private Spinner spinner;
 
 	private static boolean isDrip = false;
@@ -64,6 +65,8 @@ public class _5_TimingInformation extends AppCompatActivity {
 
 		// Initialize UI elements
 		days = findViewById(R.id.days);
+		etHeader = findViewById(R.id.header);
+		etFooter = findViewById(R.id.footer);
 		date = findViewById(R.id.date);
 		String curDate = new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date());
 		date.setText(curDate);
@@ -156,8 +159,6 @@ public class _5_TimingInformation extends AppCompatActivity {
 
 		// Continue button click listener
 		findViewById(R.id.continueToNext).setOnClickListener(view -> validateAndContinue());
-
-
 	}
 
 	@NonNull
@@ -204,12 +205,23 @@ public class _5_TimingInformation extends AppCompatActivity {
 						days.setText(intervalValue);
 					}
 
+					if (subStageObj.has("header")){
+						Object dateObj = subStageObj.get("header");
+						String headerText = (dateObj instanceof JSONObject) ? ((JSONObject) dateObj).optString("value", "") : dateObj.toString();
+						etHeader.setText(headerText);
+					}
+
+					if (subStageObj.has("footer")){
+						Object dateObj = subStageObj.get("footer");
+						String footerText = (dateObj instanceof JSONObject) ? ((JSONObject) dateObj).optString("value", "") : dateObj.toString();
+						etFooter.setText(footerText);
+					}
+
 					if (subStageObj.has("date")){
 						Object dateObj = subStageObj.get("date");
 						String dateValue = (dateObj instanceof JSONObject) ? ((JSONObject) dateObj).optString("value", "") : dateObj.toString();
 						date.setText(dateValue);
 					}
-					// ✅ Prefill Date (Use current date if not found)
 
 					// ✅ Extract "count" correctly from JSON and set in Amount field
 					if (subStageObj.has("count")) {
@@ -256,6 +268,14 @@ public class _5_TimingInformation extends AppCompatActivity {
 			amount.setError("Enter amount");
 			return;
 		}
+		if (etHeader.getText().toString().isEmpty()) {
+			etHeader.setError("Enter header");
+			return;
+		}
+		if (etFooter.getText().toString().isEmpty()) {
+			etFooter.setError("Enter footer");
+			return;
+		}
 
 		SharedPreferences prefs = getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 		SharedPreferences.Editor editor = prefs.edit();
@@ -290,10 +310,11 @@ public class _5_TimingInformation extends AppCompatActivity {
 		gotoFinalStep.putExtra("amount", amount.getText().toString());
 		gotoFinalStep.putExtra("unit", spinner.getSelectedItem().toString());
 		gotoFinalStep.putExtra("isDrip", isDrip);
+		gotoFinalStep.putExtra("header", etHeader.getText().toString());
+		gotoFinalStep.putExtra("footer", etFooter.getText().toString());
 
 		startActivity(gotoFinalStep);
 	}
-
 	// ✅ Date Picker Dialog
 	private void show_date_time_picker() {
 		InputMethodManager inm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);

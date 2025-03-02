@@ -47,11 +47,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public class _6_ShowAllMessages extends AppCompatActivity {
-
-
 	private RecyclerView recyclerView;
 	private ProductDataAdapter adapter;
-	private String productName, stage, subStage, mainDate, userName, unit;
+	private String productName, stage, subStage, mainDate, userName, unit,headerST,footer;
 	private double amount;
 
 	static boolean needToSave = false;
@@ -80,6 +78,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		mainDate = getIntent().getStringExtra("date");
 		amount = Double.parseDouble(Objects.requireNonNull(getIntent().getStringExtra("amount")));
 		unit = getIntent().getStringExtra("unit");
+		headerST = getIntent().getStringExtra("header");
+		footer = getIntent().getStringExtra("footer");
 		isDrip = getIntent().getBooleanExtra("isDrip", false);
 		if(unit != null && unit.equalsIgnoreCase("Vigha")){
 			calculateAm = amount;
@@ -115,7 +115,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		// Copy Button Functionality
 		Button btnCopy = findViewById(R.id.button2_copy);
-		btnCopy.setOnClickListener(v -> showCopyDialog());
+		btnCopy.setOnClickListener(v -> copyDataToClipboard(headerST,footer));
 
 		// ✅ Save Button - Always Upload Data to Firebase
 		Button btnSave = findViewById(R.id.button_Upload);
@@ -148,6 +148,9 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			storedData.put("countingValue", unit);
 			storedData.put("date", mainDate);
 			storedData.put("interval", interval);
+			storedData.put("isDrip", isDrip);
+			storedData.put("header", headerST);
+			storedData.put("footer", footer);
 
 			// ✅ Save updated JSON back to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
@@ -304,47 +307,6 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		builder.create().show();
 	}
 
-
-	// ✅ Copy Functionality
-	private void showCopyDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle("Customize Copy Format");
-
-		// Inflate custom layout
-		View view = LayoutInflater.from(this).inflate(R.layout.dialog_copy_format, null);
-		EditText etHeader = view.findViewById(R.id.etHeader);
-		EditText etFooter = view.findViewById(R.id.etFooter);
-
-		// ✅ Load saved Header & Footer from SharedPreferences
-		etHeader.setText(getSavedText("savedHeader"));
-		etFooter.setText(getSavedText("savedFooter"));
-
-		builder.setView(view);
-
-		// ✅ Copy Button (Save & Copy)
-		builder.setPositiveButton("Copy", (dialog, which) -> {
-			String header = etHeader.getText().toString().trim();
-			String footer = etFooter.getText().toString().trim();
-
-			// ✅ Save Header & Footer
-			saveText("savedHeader", header);
-			saveText("savedFooter", footer);
-
-			// ✅ Copy Data
-			copyDataToClipboard(header, footer);
-		});
-
-		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-		builder.create().show();
-	}
-
-	private void saveText(String key, String value) {
-		getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).edit().putString(key, value).apply();
-	}
-
-	private String getSavedText(String key) {
-		return getSharedPreferences("DrKishanPrefs", MODE_PRIVATE).getString(key, ""); // Default: empty string
-	}
 	private void uploadDataToFirebase() {
 		DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
 
@@ -411,7 +373,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 			subStageObject.put("data", messagesArray.toString());
 
 			// ✅ Update other fields: count, countingValue, date, interval, isDrip
-			String[] keysToFix = {"count", "countingValue", "date", "interval", "isDrip"};
+			String[] keysToFix = {"count", "countingValue", "date", "interval", "isDrip","footer","header"};
 			for (String key : keysToFix) {
 				if (subStageObject.has(key)) {
 					Object valueObj = subStageObject.get(key);
@@ -441,6 +403,11 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 						case "interval":
 							subStageObject.put(key, interval);
 							break;
+							case "header":
+							subStageObject.put(key, "");
+							break;
+						case "footer":
+							subStageObject.put(key, "");
 						case "isDrip":
 							subStageObject.put(key, isDrip); // Store actual value of isDrip
 							break;
@@ -615,6 +582,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 	// ✅ Function to translate units while keeping other text unchanged
 	private String translateUnits(String message) {
 		return message.replace("grams", "ગ્રામ")
+										.replace("KG.", "કિલો")
 										.replace("KG", "કિલો")
 										.replace("Letter", "લિટર")
 										.replace("liter", "લિટર")

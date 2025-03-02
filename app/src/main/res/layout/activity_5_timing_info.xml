@@ -16,6 +16,25 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <Switch
+        android:id="@+id/switch1Drip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/drip"
+        app:layout_constraintBottom_toTopOf="@+id/textInputLayoutName2"
+        app:layout_constraintStart_toStartOf="@+id/textInputLayoutName2"
+        app:layout_constraintTop_toBottomOf="@+id/include4"
+        tools:ignore="UseSwitchCompatOrMaterialXml" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/spray"
+        android:layout_marginStart="3dp"
+        app:layout_constraintBottom_toBottomOf="@+id/switch1Drip"
+        app:layout_constraintStart_toEndOf="@+id/switch1Drip"
+        app:layout_constraintTop_toTopOf="@+id/switch1Drip" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/textInputLayoutName2"
         android:layout_width="340dp"
@@ -37,6 +56,50 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/textInputLayoutNameHeader"
+        android:layout_width="340dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:hint="Header"
+        app:endIconMode="clear_text"
+        app:helperTextTextColor="@color/design_default_color_error"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textInputLayoutName2">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/header"
+            android:inputType="textMultiLine"
+            android:minLines="2"
+            android:layout_width="340dp"
+            android:layout_height="wrap_content"
+            android:textColorHint="#757575"
+            tools:ignore="TextContrastCheck" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/textInputLayoutNamefooter"
+        android:layout_width="340dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:hint="Footer"
+        app:endIconMode="clear_text"
+        app:helperTextTextColor="@color/design_default_color_error"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textInputLayoutNameHeader">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/footer"
+            android:inputType="textMultiLine"
+            android:minLines="2"
+            android:layout_width="340dp"
+            android:layout_height="wrap_content"
+            android:textColorHint="#757575"
+            tools:ignore="TextContrastCheck" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/textInputLayoutName"
         android:layout_width="340dp"
         android:layout_height="wrap_content"
@@ -46,7 +109,7 @@
         app:helperTextTextColor="@color/design_default_color_error"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textInputLayoutName2">
+        app:layout_constraintTop_toBottomOf="@+id/textInputLayoutNamefooter">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/days"
@@ -57,16 +120,6 @@
             android:textColorHint="#757575"
             tools:ignore="TextContrastCheck" />
     </com.google.android.material.textfield.TextInputLayout>
-
-
-    <Button
-        android:id="@+id/continueToNext"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/continue_l"
-        android:layout_marginTop="50dp"
-        app:layout_constraintEnd_toEndOf="@+id/spinner"
-        app:layout_constraintTop_toBottomOf="@+id/spinner" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/textInputLayoutAMo"
@@ -100,22 +153,23 @@
         app:layout_constraintStart_toEndOf="@+id/textInputLayoutAMo"
         app:layout_constraintTop_toTopOf="@+id/textInputLayoutAMo" />
 
-    <Switch
-        android:id="@+id/switch1Drip"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/buttonLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/drip"
-        app:layout_constraintBottom_toTopOf="@+id/textInputLayoutName2"
-        app:layout_constraintStart_toStartOf="@+id/textInputLayoutName2"
-        app:layout_constraintTop_toBottomOf="@+id/include4"
-        tools:ignore="UseSwitchCompatOrMaterialXml" />
+        android:orientation="horizontal"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/spray"
-        android:layout_marginStart="3dp"
-        app:layout_constraintBottom_toBottomOf="@+id/switch1Drip"
-        app:layout_constraintStart_toEndOf="@+id/switch1Drip"
-        app:layout_constraintTop_toTopOf="@+id/switch1Drip" />
+        <Button
+            android:id="@+id/continueToNext"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/continue_l" />
+    </LinearLayout>
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>
