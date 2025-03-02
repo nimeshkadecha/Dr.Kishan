@@ -459,6 +459,8 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 											                     )
 											.addOnFailureListener(e -> Log.e("Firebase", "Error uploading data", e));
 
+			setNeedToSave(false);
+
 		} catch (JSONException e) {
 			Log.e("Firebase", "JSON Processing Error", e);
 		}
