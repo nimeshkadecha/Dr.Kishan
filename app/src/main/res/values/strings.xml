@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Farm Planner</string>
+    <string name="app_name">Dr Planner</string>
     <string name="enter_password">Enter Password</string>
     <string name="login">Login</string>
     <string name="created_by_krinal">Created by Krinal</string>

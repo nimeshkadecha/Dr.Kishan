@@ -91,7 +91,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
 
-		header.setText(MessageFormat.format("FP > {0} > {1} > {2}", extractName(productName), extractName(stage), extractName(subStage)));
+		header.setText(MessageFormat.format("DP > {0} > {1} > {2}", extractName(productName), extractName(stage), extractName(subStage)));
 
 		header.setTextSize(20f);
 
@@ -442,6 +442,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 				Log.d("ENimesh", "Duplicate skipped: " + entry);
 			}
 
+			// ✅ Clear input fields after adding
 			// ✅ Clear input fields after adding
 			etProductMessage.setText("");
 			if (!isDrip) {
