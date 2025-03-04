@@ -41,6 +41,11 @@ public class _1_LoginPage extends AppCompatActivity {
 		reference = FirebaseDatabase.getInstance().getReference("");
 		sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
+		findViewById(R.id.TandC).setOnClickListener(View -> {
+			Intent intent = new Intent(_1_LoginPage.this, _1_TermsAndCondition.class);
+			startActivity(intent);
+		});
+
 		findViewById(R.id.forgetPassword).setOnClickListener(View ->{
 			Intent intent = new Intent(_1_LoginPage.this, _1_ResetPassword.class);
 			startActivity(intent);

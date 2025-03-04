@@ -24,6 +24,13 @@
     <string name="enter_product_name">Enter product name</string>
     <string name="enter_header_optional">Enter Header (Optional)</string>
     <string name="enter_footer_optional">Enter Footer (Optional)</string>
+    <string name="T_C">
+            <b>1.</b>અકાઉન્ટ ના નવા આઈડી પાસવર્ડ માટે એડમીન નો સંપર્ક કરવો
+        \n\n<b>2.</b> તમારા એકાઉન્ટનો આઈડી પાસવર્ડ કોઈને આપવો નહીં.
+        \n\n<b>3.</b> જો તમે તમારા એકાઉન્ટનો આઈડી પાસવર્ડ કોઈને આપશો અને તમારો કોઈ પણ ડેટા લોસ થશે તો એને પાછો લાવી શકાશે નહીં
+        \n\n<b>4.</b> એક એકાઉન્ટ બીજા કોઈ પણ પ્રકારના ફોનમાં લોગીન કરવું નહીં તેનાથી ડેટા લોસ થવાનો ભય રહેશે એટલે કૃપા કરી માત્ર એક જ ફોનમાં એપનો યુઝ કરો
+        \n\n<b>5.</b> Admin Contact: +916353177220
+    </string>
 
     <!-- ✅ Add Unit Options -->
     <string-array name="unit_options">
