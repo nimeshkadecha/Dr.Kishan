@@ -1,8 +1,9 @@
 <resources>
-    <string name="app_name">Dr Planner</string>
+    <string name="app_name">My schedule</string>
+    <string name="app_name_short">MS</string>
     <string name="enter_password">Enter Password</string>
     <string name="login">Login</string>
-    <string name="created_by_krinal">Created by Krinal</string>
+    <string name="created_by_krinal">Created by Krinal  </string>
     <string name="enter_name">Enter Name</string>
     <string name="add">Add +</string>
     <string name="log_out">Log out</string>

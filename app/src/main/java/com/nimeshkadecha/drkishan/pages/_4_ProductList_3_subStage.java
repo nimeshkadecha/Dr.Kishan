@@ -53,7 +53,7 @@ public class _4_ProductList_3_subStage extends AppCompatActivity {
 
 		// ✅ setting header
 		TextView header = findViewById(R.id.textView_Header);
-		header.setText(MessageFormat.format("DP > {0} > {1}", extractName(productName), extractName(stage)));
+		header.setText(MessageFormat.format("{0} > {1} > {2}",getString(R.string.app_name_short), extractName(productName), extractName(stage)));
 		header.setTextSize(20f);
 
 		HorizontalScrollView scrollView = findViewById(R.id.horizontalScrollView);
