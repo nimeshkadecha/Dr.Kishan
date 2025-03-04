@@ -201,11 +201,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		// ✅ Format Header if provided
 		if (!header.isEmpty()) {
-			String[] headerLines = header.split("\\n");
-			for (String line : headerLines) {
-				copiedText.append("*").append(line).append("*\n");
-			}
-			copiedText.append("\n"); // Extra line break after header
+			copiedText.append(header).append("\n\n");
 		}
 
 		// ✅ Check if interval is 0 (add all messages to mainDate)
@@ -244,10 +240,7 @@ public class _6_ShowAllMessages extends AppCompatActivity {
 
 		// ✅ Format Footer if provided
 		if (!footer.isEmpty()) {
-			String[] footerLines = footer.split("\\n");
-			for (String line : footerLines) {
-				copiedText.append("*").append(line).append("*\n");
-			}
+			copiedText.append(footer).append("\n");
 		}
 
 		// ✅ Copy to Clipboard
