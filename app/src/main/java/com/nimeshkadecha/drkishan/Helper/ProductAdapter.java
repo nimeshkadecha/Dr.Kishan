@@ -219,7 +219,8 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		// ✅ Inflate existing dialog layout
 		View view = LayoutInflater.from(context).inflate(R.layout.dialog_add_to_list, null);
 		EditText etProductName = view.findViewById(R.id.etProductName);
-		etProductName.setText(extractItemName(originalItem)); // ✅ Pre-fill existing name
+		String originalString = extractItemName(originalItem);
+		etProductName.setText(originalString); // ✅ Pre-fill existing name
 
 		builder.setView(view);
 
@@ -241,6 +242,12 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
 			if (editedName.matches(".*[.#$\\[\\]].*")) {
 				etProductName.setError("Name cannot contain '.', '#', '$', '[', or ']'");
+				return;
+			}
+
+			if(originalString.equals(editedName)){
+				Toast.makeText(context, "No changes detected", Toast.LENGTH_SHORT).show();
+				alertDialog.dismiss();
 				return;
 			}
 
