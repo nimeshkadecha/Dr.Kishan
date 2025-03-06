@@ -225,7 +225,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 		builder.setView(view);
 
 		builder.setPositiveButton("Save", null); // Set initially to null, we will override later
-		builder.setNegativeButton("Delete", (dialog, which) -> deleteItemFromStorage(context, position, originalItem));
+		builder.setNegativeButton("Delete", null);
 		builder.setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss());
 
 		AlertDialog alertDialog = builder.create();
@@ -257,6 +257,18 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 			updateItemInStorage(context, position, originalItem, updatedItem);
 			notifyDataSetChanged();
 			alertDialog.dismiss();
+		});
+
+//		Overriting the delete
+		alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnLongClickListener(view1 -> {
+			deleteItemFromStorage(context, position, originalItem);
+			alertDialog.dismiss();
+			return false;
+		});
+
+//		Toasting user to longClick for deleting
+		alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(view1 -> {
+			Toast.makeText(context, "Long Click to Delete", Toast.LENGTH_SHORT).show();
 		});
 	}
 
