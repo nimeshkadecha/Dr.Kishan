@@ -73,11 +73,12 @@ public class DialogMessageAdapter extends RecyclerView.Adapter<DialogMessageAdap
 
 
 		holder.itemView.setOnLongClickListener(view -> {
-			if (position < dialogList.size()) { // Prevent invalid index
-				dialogList.remove(position);
-				notifyDataSetChanged();
-				Toast.makeText(view.getContext(), "Removed", Toast.LENGTH_SHORT).show();
+			int pos = holder.getAdapterPosition();
+			if (pos != RecyclerView.NO_POSITION && pos < dialogList.size()) {
+				dialogList.remove(pos);
+				notifyItemRemoved(pos);
 			}
+
 			return true; // Ensures long press action is handled properly
 		});
 	}

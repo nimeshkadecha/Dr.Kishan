@@ -283,15 +283,15 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			}
 		});
 
-
 		builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
 		builder.setNeutralButton("Delete",(dialog, which) -> {
-			deleteMessageFromStorage(position);
+			deleteMessageFromStorage(key,position);
 			messageMap.remove(key);
 			sortedKeys.remove((Integer) key);
 			notifyDataSetChanged();
 		});
+
 		builder.create().show();
 	}
 
@@ -406,13 +406,12 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 
 		return formatNumber(convertedQuantity) + " " + finalUnit;
 	}
-
-	// ✅ Delete Message from SharedPreferences (No Changes)
 	@SuppressLint("NotifyDataSetChanged")
-	private void deleteMessageFromStorage(int position) {
+	private void deleteMessageFromStorage(int key,int position) {
 		try {
 			SharedPreferences prefs = context.getSharedPreferences("DrKishanPrefs", MODE_PRIVATE);
 			String savedJson = prefs.getString("savedJson", "{}");
+			Log.d("ENimesh", "in deleteMessageFromStorage (BEFORE)= " + savedJson);
 			JSONObject jsonObject = new JSONObject(savedJson);
 
 			if (!jsonObject.has(userName)) return;
@@ -427,27 +426,44 @@ public class ProductDataAdapter extends RecyclerView.Adapter<ProductDataAdapter.
 			if (!stageObj.has(subStage)) return;
 			JSONObject subStageObj = stageObj.getJSONObject(subStage);
 
+			// Retrieve existing data array if present
 			JSONArray messagesArray = new JSONArray();
 			if (subStageObj.has("data")) {
 				messagesArray = new JSONArray(subStageObj.getJSONObject("data").getString("value"));
 			}
 
-			if (position >= 0 && position < messagesArray.length()) {
-				messagesArray.remove(position);
+			// Iterate backwards and remove all objects with the matching key
+			for (int i = messagesArray.length() - 1; i >= 0; i--) {
+				JSONObject messageObj = messagesArray.getJSONObject(i);
+				if (messageObj.getInt("k") == key) {
+					messagesArray.remove(i);
+				}
 			}
 
+			// Store updated messages in correct format
 			JSONObject formattedData = new JSONObject();
 			formattedData.put("value", messagesArray.toString());
 			subStageObj.put("data", formattedData);
 
+			// Save updated JSON to SharedPreferences
 			prefs.edit().putString("savedJson", jsonObject.toString()).apply();
 
+			if (position >= 0 && position < messagesArray.length()) {
+				messagesArray.remove(position);
+			}
+
+			// Optionally update UI (adapter refresh) and flag saving if needed
 			notifyDataSetChanged();
-			Toast.makeText(context, "Message Deleted Successfully!", Toast.LENGTH_SHORT).show();
+			_6_ShowAllMessages.setNeedToSave(true);
+
+			Toast.makeText(context, "Messages Deleted Successfully!", Toast.LENGTH_SHORT).show();
+			Log.d("ENimesh", "After deletion, data: " + formattedData);
+			Log.d("ENimesh", "After deletion, savedJson: " + prefs.getString("savedJson", "{}"));
 		} catch (Exception e) {
 			Log.e("Storage", "Error deleting message", e);
 		}
 	}
+
 
 	private String getDate(int position){
 
